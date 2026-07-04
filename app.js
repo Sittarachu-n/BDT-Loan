@@ -48,10 +48,10 @@ const fields = {
   employeeType: document.querySelector("#employeeType"),
   salaryRemaining: document.querySelector("#salaryRemaining"),
   currentMonthlyPayment: document.querySelector("#currentMonthlyPayment"),
-  interestRate: document.querySelector("#interestRate"),
+  desiredMonthlyPayment: document.querySelector("#desiredMonthlyPayment"),
   contractMonths: document.querySelector("#contractMonths"),
-  currentLoanTable: document.querySelector("#currentLoanTable"),
   requestedLoanTable: document.querySelector("#requestedLoanTable"),
+  borrowerName: document.querySelector("#borrowerName"),
 };
 
 const output = {
@@ -60,9 +60,8 @@ const output = {
   approvedAmount: document.querySelector("#approvedAmount"),
   summaryText: document.querySelector("#summaryText"),
   salaryAlert: document.querySelector("#salaryAlert"),
-  salaryEligible: document.querySelector("#salaryEligible"),
   maxNewPayment: document.querySelector("#maxNewPayment"),
-  disposableAfterCurrent: document.querySelector("#disposableAfterCurrent"),
+  salaryPaymentBase: document.querySelector("#salaryPaymentBase"),
   termMonths: document.querySelector("#termMonths"),
   salaryLoanTable: document.querySelector("#salaryLoanTable"),
   personnelRemainingFormula: document.querySelector("#personnelRemainingFormula"),
@@ -80,6 +79,7 @@ const output = {
 };
 
 let latestCalculation = null;
+let delayedCalculateTimer = null;
 
 function formatBaht(value) {
   return `${Math.max(0, Math.floor(value)).toLocaleString("th-TH")} บาท`;
@@ -90,7 +90,8 @@ function formatPercent(value) {
 }
 
 function numberValue(field) {
-  return Math.max(0, Number(field.value) || 0);
+  const rawValue = String(field?.value ?? "").replace(/,/g, "");
+  return Math.max(0, Number(rawValue) || 0);
 }
 
 function escapeHtml(value) {
@@ -128,22 +129,13 @@ function termForLoan(months) {
   return Math.max(1, months);
 }
 
-function monthlyPayment(principal, annualRate, months) {
-  if (principal <= 0) return 0;
-  if (annualRate <= 0) return principal / months;
-
-  const monthlyRate = annualRate / 100 / 12;
-  const factor = Math.pow(1 + monthlyRate, months);
-  return (principal * monthlyRate * factor) / (factor - 1);
+function principalOnlyCapacity(payment, months) {
+  return Math.floor(Math.max(0, payment) * termForLoan(months));
 }
 
-function principalFromPayment(payment, annualRate, months) {
-  if (payment <= 0) return 0;
-  if (annualRate <= 0) return payment * months;
-
-  const monthlyRate = annualRate / 100 / 12;
-  const factor = Math.pow(1 + monthlyRate, months);
-  return (payment * (factor - 1)) / (monthlyRate * factor);
+function principalOnlyPayment(principal, months) {
+  if (principal <= 0) return 0;
+  return Math.ceil(principal / termForLoan(months));
 }
 
 function addCheck(items, state, title, detail) {
@@ -154,12 +146,51 @@ function setText(element, text) {
   if (element) element.textContent = text;
 }
 
+function createElement(tagName, options = {}, children = []) {
+  const element = document.createElement(tagName);
+  const { className, text, attributes = {} } = options;
+
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = text;
+  Object.entries(attributes).forEach(([name, value]) => {
+    element.setAttribute(name, value);
+  });
+  children.forEach((child) => element.append(child));
+
+  return element;
+}
+
+function renderAlertMessages(messages) {
+  if (!output.salaryAlert) return;
+
+  output.salaryAlert.hidden = messages.length === 0;
+  output.salaryAlert.replaceChildren(
+    ...messages.map((message) => createElement("div", { text: message }))
+  );
+}
+
+function renderChecks(checks) {
+  if (!output.checkList) return;
+
+  const items = checks.map((check) => {
+    const icon = check.state === "pass" ? "✓" : check.state === "warn" ? "!" : "×";
+    const mark = createElement("span", { className: "mark", text: icon });
+    const title = createElement("strong", { text: check.title });
+    const detail = createElement("p", { text: check.detail });
+    const content = createElement("div", {}, [title, detail]);
+
+    return createElement("li", { className: check.state }, [mark, content]);
+  });
+
+  output.checkList.replaceChildren(...items);
+}
+
 function requestResultText(loan) {
   if (loan.amount === 0) return "-";
   if (loan.missingType) return "เลือกประเภทเงินกู้";
   if (loan.passed) return "กู้ได้เต็มยอด";
   if (loan.possibleAmount <= 0) return "ยังไม่มีวงเงินคงเหลือ";
-  return `กู้ได้สูงสุด ${formatBaht(loan.possibleAmount)}`;
+  return `วงเงินกู้สูงสุด ${formatBaht(loan.possibleAmount)}`;
 }
 
 function requestResultClass(loan) {
@@ -187,13 +218,16 @@ function formatThaiDateTime(date = new Date()) {
 }
 
 function renderDynamicTables() {
-  fields.currentLoanTable.innerHTML = Object.entries(loanTypes)
+  output.salaryLoanTable.innerHTML = Object.entries(loanTypes)
     .map(
-      ([typeKey, loanType]) => `<tr>
+      ([typeKey, loanType]) => `<tr data-salary-type="${typeKey}">
         <td><strong>${typeKey}</strong><span>${loanType.label.replace(`${typeKey} `, "")}</span></td>
-        <td>${formatBaht(loanType.max)}</td>
-        <td><input class="table-input current-loan-amount" data-loan-type="${typeKey}" type="number" min="0" step="100" value="0" /></td>
-        <td><strong data-current-remaining="${typeKey}">${formatBaht(loanType.max)}</strong></td>
+        <td>${loanType.annualRate.toLocaleString("th-TH")}%</td>
+        <td data-salary-term="${typeKey}">0 เดือน</td>
+        <td><span class="term-status" data-salary-status="${typeKey}">-</span></td>
+        <td data-salary-payment="${typeKey}">0 บาท</td>
+        <td><input class="table-input salary-current-loan-amount" data-loan-type="${typeKey}" type="text" inputmode="numeric" pattern="[0-9,]*" value="0" /></td>
+        <td><strong data-salary-eligible="${typeKey}">0 บาท</strong><span class="term-status ok" data-salary-best="${typeKey}" hidden>สูงสุด</span></td>
       </tr>`
     )
     .join("");
@@ -212,10 +246,12 @@ function renderDynamicTables() {
 }
 
 function getCurrentLoans() {
-  const current = {};
-  document.querySelectorAll(".current-loan-amount").forEach((input) => {
+  const current = Object.fromEntries(Object.keys(loanTypes).map((typeKey) => [typeKey, 0]));
+
+  document.querySelectorAll(".salary-current-loan-amount").forEach((input) => {
     current[input.dataset.loanType] = numberValue(input);
   });
+
   return current;
 }
 
@@ -227,54 +263,25 @@ function getRequestedLoans() {
   });
 }
 
-function salaryEstimateForType(typeKey, disposableAfterCurrent, months) {
+function salaryEstimateForType(typeKey, maxNewPayment, months, currentLoans) {
   const loanType = loanTypes[typeKey];
   const term = termForLoan(months);
   const maxTerm = maxTermForLoan(typeKey, loanType.max);
   const termValid = term <= maxTerm;
-  const maxPayment = disposableAfterCurrent / 3;
-  const salaryCapacity = termValid ? Math.floor(principalFromPayment(maxPayment, loanType.annualRate, term)) : 0;
-  const eligible = Math.floor(Math.min(loanType.max, salaryCapacity));
-  const payment = monthlyPayment(eligible, loanType.annualRate, term);
+  const typeRemaining = Math.max(0, loanType.max - (currentLoans[typeKey] || 0));
+  const salaryCapacity = termValid ? principalOnlyCapacity(maxNewPayment, term) : 0;
+  const eligible = Math.floor(Math.min(typeRemaining, salaryCapacity));
+  const payment = principalOnlyPayment(eligible, term);
 
-  return { typeKey, loanType, term, maxTerm, termValid, eligible, payment };
+  return { typeKey, loanType, term, maxTerm, termValid, typeRemaining, eligible, payment };
 }
 
-function maxBorrowAcrossTypes(maxPaymentBudget, currentLoans, employeeRemaining, months) {
-  let paymentLeft = Math.max(0, maxPaymentBudget);
-  let employeeLeft = Math.max(0, employeeRemaining);
-  let total = 0;
-
-  const candidates = Object.entries(loanTypes)
-    .map(([typeKey, loanType]) => {
-      const term = termForLoan(months);
-      const typeRemaining = Math.max(0, loanType.max - (currentLoans[typeKey] || 0));
-      const termValid = term <= maxTermForLoan(typeKey, loanType.max);
-      return {
-        typeKey,
-        loanType,
-        term,
-        typeRemaining: termValid ? typeRemaining : 0,
-        principalPerBaht: termValid ? principalFromPayment(1, loanType.annualRate, term) : 0,
-      };
-    })
-    .sort((a, b) => b.principalPerBaht - a.principalPerBaht);
-
-  candidates.forEach((candidate) => {
-    if (paymentLeft <= 0 || employeeLeft <= 0 || candidate.typeRemaining <= 0) return;
-
-    const cap = Math.min(candidate.typeRemaining, employeeLeft);
-    const paymentForCap = monthlyPayment(cap, candidate.loanType.annualRate, candidate.term);
-    const amount = paymentForCap <= paymentLeft
-      ? cap
-      : Math.min(cap, principalFromPayment(paymentLeft, candidate.loanType.annualRate, candidate.term));
-
-    total += amount;
-    employeeLeft -= amount;
-    paymentLeft -= monthlyPayment(amount, candidate.loanType.annualRate, candidate.term);
-  });
-
-  return Math.floor(total);
+function preliminaryEligibleAmount(desiredMonthlyPayment, months, employeeRemaining, typeRemainingTotal) {
+  return Math.floor(Math.min(
+    principalOnlyCapacity(desiredMonthlyPayment, months),
+    Math.max(0, employeeRemaining),
+    Math.max(0, typeRemainingTotal)
+  ));
 }
 
 function evaluateRequestedLoansSequentially(requestedLoans, maxPaymentBudget, currentLoans, employeeRemaining, months) {
@@ -304,17 +311,17 @@ function evaluateRequestedLoansSequentially(requestedLoans, maxPaymentBudget, cu
 
     const term = termForLoan(months);
     const termValid = term <= maxTermForLoan(loan.type, loan.amount);
-    const paymentCapacity = termValid ? principalFromPayment(paymentLeft, loanType.annualRate, term) : 0;
+    const paymentCapacity = termValid ? principalOnlyCapacity(paymentLeft, term) : 0;
     const possibleAmount = Math.floor(Math.max(0, Math.min(typeLeft[loan.type] || 0, employeeLeft, paymentCapacity)));
     const approvedAmount = loan.amount > 0 ? Math.min(loan.amount, possibleAmount) : 0;
-    const requestedPayment = monthlyPayment(loan.amount, loanType.annualRate, term);
-    const approvedPayment = monthlyPayment(approvedAmount, loanType.annualRate, term);
+    const requestedPayment = principalOnlyPayment(loan.amount, term);
+    const approvedPayment = principalOnlyPayment(approvedAmount, term);
     const passed = loan.amount > 0 && termValid && loan.amount <= possibleAmount;
 
     if (loan.amount > 0) {
       typeLeft[loan.type] = Math.max(0, (typeLeft[loan.type] || 0) - approvedAmount);
       employeeLeft = Math.max(0, employeeLeft - approvedAmount);
-      paymentLeft = Math.max(0, paymentLeft - approvedPayment);
+      paymentLeft = Math.max(0, paymentLeft - approvedAmount / term);
     }
 
     return {
@@ -359,39 +366,90 @@ function buildAmortizationRows(loan) {
   return rows;
 }
 
-function calculate() {
+function buildReportViewModel(data) {
+  const evaluatedLoansWithAmount = data.evaluatedLoans.filter((loan) => loan.amount > 0);
+  const amortizationLoans = data.evaluatedLoans.filter((loan) => loan.approvedAmount > 0 && loanTypes[loan.type]);
+  const totalEvaluationPayment = evaluatedLoansWithAmount.reduce((sum, loan) => sum + loan.approvedPayment, 0);
+
+  return {
+    data,
+    amortizationLoans,
+    borrowerName: fields.borrowerName?.value.trim() || "-",
+    evaluatedLoansWithAmount,
+    printedAt: formatThaiDateTime(),
+    reportStatus: data.statusMessage,
+    totalEvaluationPayment,
+  };
+}
+
+function readFormState() {
   const requestedLoans = getRequestedLoans();
-  const selectedType = requestedLoans[0]?.type || "1.1";
   const employee = employeeTypes[fields.employeeType.value];
   const salaryRemaining = numberValue(fields.salaryRemaining);
   const currentMonthlyPayment = numberValue(fields.currentMonthlyPayment);
   const months = numberValue(fields.contractMonths);
   const currentLoans = getCurrentLoans();
   const currentDebtTotal = Object.values(currentLoans).reduce((sum, value) => sum + value, 0);
+
+  return {
+    requestedLoans,
+    employee,
+    salaryRemaining,
+    currentMonthlyPayment,
+    months,
+    currentLoans,
+    currentDebtTotal,
+  };
+}
+
+function calculate() {
+  const {
+    requestedLoans,
+    employee,
+    salaryRemaining,
+    currentMonthlyPayment,
+    months,
+    currentLoans,
+    currentDebtTotal,
+  } = readFormState();
+  const hasCurrentMonthlyPayment = currentMonthlyPayment > 0;
+  const hasCurrentLoanDebt = currentDebtTotal > 0;
+  const debtPaymentMismatchMessages = [];
+  if (hasCurrentMonthlyPayment && !hasCurrentLoanDebt) {
+    debtPaymentMismatchMessages.push("มีภาระผ่อนปัจจุบันต่อเดือน กรุณากรอกยอดเงินกู้ปัจจุบันในตารางส่วนที่ 1");
+  }
+  if (hasCurrentLoanDebt && !hasCurrentMonthlyPayment) {
+    debtPaymentMismatchMessages.push("มียอดเงินกู้ปัจจุบัน กรุณากรอกภาระผ่อนปัจจุบันต่อเดือน");
+  }
   const requestedLoansActive = requestedLoans.filter((loan) => loan.amount > 0);
   const requestedTotal = requestedLoansActive.reduce((sum, loan) => sum + loan.amount, 0);
-  const disposableAfterCurrent = Math.max(0, salaryRemaining - currentMonthlyPayment);
-  const maxNewPayment = disposableAfterCurrent / 3;
-  const salaryRows = Object.keys(loanTypes).map((key) => salaryEstimateForType(key, disposableAfterCurrent, months));
+  const salaryPaymentBase = salaryRemaining / 3;
+  const maxNewPayment = Math.max(0, salaryPaymentBase - currentMonthlyPayment);
+  const maxNewPaymentLimit = Math.floor(maxNewPayment);
+  const desiredPaymentRaw = numberValue(fields.desiredMonthlyPayment);
+  const desiredMonthlyPayment = maxNewPaymentLimit > 0
+    ? Math.min(maxNewPaymentLimit, desiredPaymentRaw > 0 ? desiredPaymentRaw : maxNewPaymentLimit)
+    : 0;
+  const desiredPaymentActive = document.activeElement === fields.desiredMonthlyPayment;
+  fields.desiredMonthlyPayment.max = maxNewPaymentLimit;
+  fields.desiredMonthlyPayment.placeholder = maxNewPaymentLimit > 0 ? `ไม่เกิน ${maxNewPaymentLimit.toLocaleString("th-TH")}` : "0";
+  if (!desiredPaymentActive || desiredPaymentRaw === 0 || desiredPaymentRaw > maxNewPaymentLimit) {
+    fields.desiredMonthlyPayment.value = desiredMonthlyPayment;
+  }
+  const salaryRows = Object.keys(loanTypes).map((key) => salaryEstimateForType(key, desiredMonthlyPayment, months, currentLoans));
   const employeeRemaining = Math.max(0, employee.cap - currentDebtTotal);
   const personnelRemainingAfterRequested = Math.max(0, employee.cap - currentDebtTotal - requestedTotal);
   const typeRemainingByType = {};
 
   Object.entries(loanTypes).forEach(([typeKey, loanType]) => {
     typeRemainingByType[typeKey] = Math.max(0, loanType.max - (currentLoans[typeKey] || 0));
-    const cell = document.querySelector(`[data-current-remaining="${typeKey}"]`);
-    if (cell) cell.textContent = formatBaht(typeRemainingByType[typeKey]);
   });
 
   const typeRemainingTotal = Object.values(typeRemainingByType).reduce((sum, value) => sum + value, 0);
-  const rightEligible = Math.min(
-    maxBorrowAcrossTypes(maxNewPayment, currentLoans, employeeRemaining, months),
-    typeRemainingTotal,
-    employeeRemaining
-  );
+  const rightEligible = preliminaryEligibleAmount(desiredMonthlyPayment, months, employeeRemaining, typeRemainingTotal);
   const evaluatedLoans = evaluateRequestedLoansSequentially(
     requestedLoans,
-    maxNewPayment,
+    desiredMonthlyPayment,
     currentLoans,
     employeeRemaining,
     months
@@ -417,42 +475,44 @@ function calculate() {
 
   evaluatedLoansActive.forEach((loan) => {
     if (!loanTypes[loan.type]) {
-      addCheck(checks, "fail", `ผลพิจารณาสัญญา ${loan.index + 1}`, `กรุณาเลือกประเภทเงินกู้สำหรับยอดที่ต้องการ ${formatBaht(loan.amount)}`);
+      addCheck(checks, "fail", `ผลการประเมินสัญญา ${loan.index + 1}`, `กรุณาเลือกประเภทเงินกู้สำหรับยอดเงินกู้ที่ต้องการ ${formatBaht(loan.amount)}`);
       return;
     }
 
     addCheck(
       checks,
       loan.passed ? "pass" : "fail",
-      `ผลพิจารณาสัญญา ${loan.index + 1}`,
+      `ผลการประเมินสัญญา ${loan.index + 1}`,
       loan.passed
-        ? `กู้ได้ตามยอดที่ต้องการ ${formatBaht(loan.amount)}`
-        : `ยอดที่ต้องการ ${formatBaht(loan.amount)}; ${requestResultText(loan)}`
+        ? `กู้ได้ตามยอดเงินกู้ที่ต้องการ ${formatBaht(loan.amount)}`
+        : `ยอดเงินกู้ที่ต้องการ ${formatBaht(loan.amount)}; ${requestResultText(loan)}`
     );
   });
 
   addCheck(
     checks,
-    disposableAfterCurrent > 0 ? "pass" : "fail",
+    maxNewPayment > 0 ? "pass" : "fail",
     "ส่วนที่ 1: เงินเดือนรองรับการผ่อน",
-    `ยอดเงินเดือนคงเหลือ ${formatBaht(salaryRemaining)} หักภาระผ่อนปัจจุบันต่อเดือน ${formatBaht(currentMonthlyPayment)} เหลือ ${formatBaht(disposableAfterCurrent)}`
+    `ค่างวดใหม่สูงสุด = (${formatBaht(salaryRemaining)} ÷ 3) - ${formatBaht(currentMonthlyPayment)} = ${formatBaht(maxNewPayment)} | ใช้ค่างวดที่ต้องการ ${formatBaht(desiredMonthlyPayment)}`
   );
   addCheck(
     checks,
     rightEligible > 0 ? "pass" : "fail",
-    "ส่วนที่ 2: ยอดกู้สูงสุดที่สามารถกู้ได้",
+    "ส่วนที่ 2: วงเงินกู้สูงสุดที่สามารถกู้ได้",
     `คำนวณจากเงินเดือน เพดานบุคลากร และสิทธิคงเหลือตามประเภทเงินกู้ ได้สูงสุด ${formatBaht(rightEligible)}`
   );
   addCheck(
     checks,
-    currentDebtTotal <= employee.cap ? "pass" : "fail",
+    debtPaymentMismatchMessages.length === 0 && currentDebtTotal <= employee.cap ? "pass" : "fail",
     "ส่วนที่ 2: เงินกู้ปัจจุบันไม่เกินเพดานบุคลากร",
-    `ยอดเงินกู้ปัจจุบันรวม ${formatBaht(currentDebtTotal)} เทียบกับเพดาน ${formatBaht(employee.cap)}`
+    debtPaymentMismatchMessages.length > 0
+      ? debtPaymentMismatchMessages.join(" | ")
+      : `ยอดเงินกู้ปัจจุบันรวม ${formatBaht(currentDebtTotal)} เทียบกับเพดาน ${formatBaht(employee.cap)}`
   );
   addCheck(
     checks,
     requestedTotal === 0 || requestedTotal <= employeeRemaining ? "pass" : "fail",
-    "ส่วนที่ 2: ยอดที่ต้องการไม่เกินสิทธิคงเหลือตามประเภทบุคลากร",
+    "ส่วนที่ 2: ยอดเงินกู้ที่ต้องการไม่เกินสิทธิคงเหลือตามประเภทบุคลากร",
     `ต้องการรวม ${formatBaht(requestedTotal)}; สิทธิคงเหลือตามประเภทบุคลากร ${formatBaht(employeeRemaining)}`
   );
   addCheck(
@@ -460,7 +520,7 @@ function calculate() {
     requestedTotal === 0 || approvedTotal === requestedTotal ? "pass" : "fail",
     "ส่วนที่ 2: ผลเทียบกับเงื่อนไขจากส่วนที่ 1",
     requestedTotal === 0
-      ? `ยังไม่ได้กรอกยอดที่ต้องการ ระบบแสดงวงเงินสูงสุด ${formatBaht(rightEligible)}`
+      ? `ยังไม่ได้กรอกยอดเงินกู้ที่ต้องการ ระบบแสดงวงเงินกู้สูงสุด ${formatBaht(rightEligible)}`
       : `ต้องการรวม ${formatBaht(requestedTotal)}; กู้ได้ตามลำดับสัญญารวม ${formatBaht(approvedTotal)}`
   );
   addCheck(
@@ -500,6 +560,9 @@ function calculate() {
   const failed = checks.some((check) => check.state === "fail");
   const requestedOverEligible = evaluatedLoansActive.some((loan) => loan.amount > loan.approvedAmount);
   const missingSalary = salaryRemaining <= 0;
+  const alertMessages = [];
+  if (missingSalary) alertMessages.push("กรุณากรอกยอดเงินเดือนคงเหลือเพื่อประเมินสิทธิ");
+  alertMessages.push(...debtPaymentMismatchMessages);
   const summaryState = missingSalary ? "fail" : requestedOverEligible ? "partial" : failed ? "fail" : "pass";
   const statusMessage = missingSalary
     ? "ผลประเมินเบื้องต้น"
@@ -518,8 +581,9 @@ function calculate() {
     months,
     currentDebtTotal,
     requestedTotal,
-    disposableAfterCurrent,
+    salaryPaymentBase,
     maxNewPayment,
+    desiredMonthlyPayment,
     employeeRemaining,
     personnelRemainingAfterRequested,
     rightEligible,
@@ -544,28 +608,44 @@ function calculate() {
   setText(output.approvedAmount, formatBaht(rightEligible));
   setText(
     output.summaryText,
-    "ผลลัพธ์นี้เป็นผลประเมินเบื้องต้นเท่านั้น ไม่ใช่การอนุมัติเงินกู้จริง | " +
+    "ผลลัพธ์นี้เป็นการประเมินเบื้องต้นเท่านั้น ไม่ถือเป็นการอนุมัติเงินกู้ | " +
       `${employee.label} | ตรวจสอบ ${requestedLoansActive.length.toLocaleString("th-TH")} สัญญา | ดอกเบี้ยตามประเภทเงินกู้`
   );
-  if (output.salaryAlert) output.salaryAlert.hidden = !missingSalary;
+  renderAlertMessages(alertMessages);
 
-  setText(output.salaryEligible, formatBaht(Math.max(...salaryRows.map((row) => row.eligible))));
   setText(output.maxNewPayment, formatBaht(maxNewPayment));
-  setText(output.disposableAfterCurrent, formatBaht(disposableAfterCurrent));
+  setText(output.salaryPaymentBase, formatBaht(salaryPaymentBase));
   setText(output.termMonths, `${months.toLocaleString("th-TH")} เดือน`);
+  salaryRows.forEach((row) => {
+    const summaryValue = document.querySelector(`[data-summary-type="${row.typeKey}"] span`);
+    if (summaryValue) summaryValue.textContent = formatBaht(row.eligible);
+  });
   const bestSalaryEligible = Math.max(...salaryRows.map((row) => row.eligible));
-  output.salaryLoanTable.innerHTML = salaryRows
-    .map(
-      (row) => `<tr class="${row.typeKey === selectedType ? "selected-row" : ""} ${bestSalaryEligible > 0 && row.eligible === bestSalaryEligible ? "best-row" : ""} ${row.termValid ? "" : "invalid-row"}">
-        <td><strong>${row.typeKey}</strong><span>${row.loanType.label.replace(`${row.typeKey} `, "")}</span></td>
-        <td>${row.loanType.annualRate.toLocaleString("th-TH")}%</td>
-        <td>${row.term.toLocaleString("th-TH")} เดือน</td>
-        <td><span class="term-status ${row.termValid ? "ok" : "bad"}">${row.termValid ? "สอดคล้อง" : `เกิน ${row.maxTerm} เดือน`}</span></td>
-        <td>${formatBaht(row.payment)}</td>
-        <td><strong>${formatBaht(row.eligible)}</strong>${bestSalaryEligible > 0 && row.eligible === bestSalaryEligible ? `<span class="term-status ok">สูงสุด</span>` : ""}</td>
-      </tr>`
-    )
-    .join("");
+  salaryRows.forEach((row) => {
+    const tableRow = document.querySelector(`[data-salary-type="${row.typeKey}"]`);
+    const termCell = document.querySelector(`[data-salary-term="${row.typeKey}"]`);
+    const statusCell = document.querySelector(`[data-salary-status="${row.typeKey}"]`);
+    const paymentCell = document.querySelector(`[data-salary-payment="${row.typeKey}"]`);
+    const eligibleCell = document.querySelector(`[data-salary-eligible="${row.typeKey}"]`);
+    const bestBadge = document.querySelector(`[data-salary-best="${row.typeKey}"]`);
+    const highlightClass = !row.termValid
+      ? "invalid-row"
+      : desiredMonthlyPayment > 0 && row.payment === desiredMonthlyPayment
+        ? "matched-row"
+        : desiredMonthlyPayment > 0 && row.payment < desiredMonthlyPayment
+          ? "under-payment-row"
+          : "";
+
+    if (tableRow) tableRow.className = highlightClass;
+    if (termCell) termCell.textContent = `${row.term.toLocaleString("th-TH")} เดือน`;
+    if (statusCell) {
+      statusCell.className = `term-status ${row.termValid ? "ok" : "bad"}`;
+      statusCell.textContent = row.termValid ? "สอดคล้อง" : `เกิน ${row.maxTerm} เดือน`;
+    }
+    if (paymentCell) paymentCell.textContent = formatBaht(row.payment);
+    if (eligibleCell) eligibleCell.textContent = formatBaht(row.eligible);
+    if (bestBadge) bestBadge.hidden = !(bestSalaryEligible > 0 && row.eligible === bestSalaryEligible);
+  });
 
   setText(output.personnelRemainingFormula, formatBaht(personnelRemainingAfterRequested));
   setText(output.currentPaymentDisplay, formatBaht(currentMonthlyPayment));
@@ -575,19 +655,17 @@ function calculate() {
   setText(output.requiredReserve, formatBaht(requiredReserve));
   setText(output.evaluatedAmount, formatBaht(evaluatedLoansActive.length > 0 ? approvedTotal : rightEligible));
 
-  output.checkList.innerHTML = checks
-    .map((check) => {
-      const icon = check.state === "pass" ? "✓" : check.state === "warn" ? "!" : "×";
-      return `<li class="${check.state}"><span class="mark">${icon}</span><div><strong>${check.title}</strong><p>${check.detail}</p></div></li>`;
-    })
-    .join("");
+  renderChecks(checks);
 }
 
 function buildReportSummary(options = {}) {
   if (!latestCalculation || !output.reportContent) return;
 
-  const data = latestCalculation;
-  const printedAt = formatThaiDateTime();
+  const report = buildReportViewModel(latestCalculation);
+  const { data } = report;
+  const printedAt = report.printedAt;
+  const borrowerName = report.borrowerName;
+  const totalEvaluationPayment = report.totalEvaluationPayment;
   const requestedSummaryRows = data.evaluatedLoans
     .filter((loan) => loan.amount > 0)
     .map((loan) => {
@@ -607,10 +685,10 @@ function buildReportSummary(options = {}) {
     .filter((loan) => loan.approvedAmount > 0 && loanTypes[loan.type])
     .map((loan) => {
       const loanType = loanTypes[loan.type];
+      const loanLabel = loanType ? loanType.label.replace(`${loan.type} `, "") : "ยังไม่ได้เลือกประเภทเงินกู้";
       return `<div class="amortization-contract">
-        <div class="table-head">
-          <h3>สัญญาที่ ${loan.index + 1}: ${escapeHtml(loanType.label)}</h3>
-          <span>เงินต้น ${formatBaht(loan.approvedAmount)} | ดอกเบี้ย ${formatPercent(loanType.annualRate)} ต่อปี | ค่างวดโดยประมาณ ${formatBaht(loan.approvedPayment)} | ${loan.term.toLocaleString("th-TH")} งวด</span>
+        <div class="table-head amortization-head">
+          <h3>สัญญาที่ ${loan.index + 1}: ${loan.type} ${escapeHtml(loanLabel)}</h3>
         </div>
         <div class="loan-table-wrap">
           <table class="loan-table compact-table amortization-table">
@@ -642,22 +720,24 @@ function buildReportSummary(options = {}) {
       <div class="report-meta">
         <span>สำนักดิจิทัลเทคโนโลยี มหาวิทยาลัยศิลปากร</span>
         <span>วันที่พิมพ์รายงาน: ${printedAt}</span>
+        <span>ชื่อผู้กู้: ${escapeHtml(borrowerName)}</span>
       </div>
 
       <div class="report-note">
-        ผลลัพธ์นี้เป็นผลประเมินเบื้องต้นเท่านั้น ไม่ใช่การอนุมัติเงินกู้จริง
+        ผลลัพธ์นี้เป็นการประเมินเบื้องต้นเท่านั้น ไม่ถือเป็นการอนุมัติเงินกู้
       </div>
 
       <div class="metric-grid repayment-grid report-metrics">
         <div class="metric"><span>ประเภทบุคลากร</span><strong>${escapeHtml(data.employee.label)}</strong></div>
-        <div class="metric strong-metric"><span>ยอดกู้สูงสุดตามประเภทบุคลากร</span><strong>${formatBaht(data.employeeRemaining)}</strong></div>
+        <div class="metric strong-metric"><span>สิทธิคงเหลือหลังหักยอดเงินกู้ที่ต้องการ</span><strong>${formatBaht(data.personnelRemainingAfterRequested)}</strong></div>
         <div class="metric"><span>ยอดเงินกู้ที่ต้องการ</span><strong>${formatBaht(data.requestedTotal)}</strong></div>
         <div class="metric"><span>ยอดเงินเดือนคงเหลือ</span><strong>${formatBaht(data.salaryRemaining)}</strong></div>
         <div class="metric"><span>ยอดผ่อนสูงสุดต่อเดือน</span><strong>${formatBaht(data.maxNewPayment)}</strong></div>
         <div class="metric"><span>ระยะเวลาที่ต้องการผ่อน</span><strong>${data.months.toLocaleString("th-TH")} เดือน</strong></div>
+        <div class="metric"><span>รวมค่างวดที่ใช้ประเมิน</span><strong>${formatBaht(totalEvaluationPayment)}</strong></div>
       </div>
 
-      <div class="contract-summary">
+      <div class="contract-summary report-card">
         <div class="table-head">
           <h3>สรุปสัญญาเงินกู้ที่ต้องการ</h3>
           <span>แสดงเฉพาะสัญญาที่กรอกยอดเงินที่ต้องการไว้</span>
@@ -668,10 +748,10 @@ function buildReportSummary(options = {}) {
               <tr>
                 <th>สัญญา</th>
                 <th>ประเภทเงินกู้</th>
-                <th>ยอดที่ต้องการ</th>
+                <th>ยอดเงินกู้ที่ต้องการ</th>
                 <th>ยอดที่กู้ได้</th>
                 <th>ค่างวดที่ใช้ประเมิน</th>
-                <th>ผลพิจารณา</th>
+                <th>ผลการประเมิน</th>
               </tr>
             </thead>
             <tbody>${requestedSummaryRows || `<tr><td colspan="6">ยังไม่ได้กรอกยอดเงินกู้ที่ต้องการ</td></tr>`}</tbody>
@@ -679,11 +759,11 @@ function buildReportSummary(options = {}) {
         </div>
       </div>
 
-      <div class="amortization-panel">
-        <div class="table-head">
-          <h3>ตารางผ่อนชำระรายเดือนและดอกเบี้ย</h3>
+      <div class="amortization-panel report-card">
+        <div class="table-head amortization-panel-title">
+          <h3>ตารางผ่อนชำระรายเดือนและดอกเบี้ยเบื้องต้น</h3>
         </div>
-        ${amortizationTables || `<div class="report-placeholder">ยังไม่มีสัญญาที่มียอดกู้ได้สำหรับสร้างตารางผ่อน</div>`}
+        ${amortizationTables || `<div class="report-placeholder">ยังไม่มีสัญญาที่มีวงเงินกู้สำหรับสร้างตารางผ่อน</div>`}
       </div>
     </div>
   `;
@@ -710,17 +790,35 @@ function resetReportOutput() {
   if (output.pdfButton) output.pdfButton.disabled = true;
 }
 
-function syncInterestRate() {
-  const firstRequestedType = document.querySelector('.requested-loan-type[data-request-index="0"]')?.value || "1.1";
-  fields.interestRate.value = loanTypes[firstRequestedType]?.annualRate || 0;
+function scheduleCalculate(delay = 250) {
+  window.clearTimeout(delayedCalculateTimer);
+  delayedCalculateTimer = window.setTimeout(() => {
+    calculate();
+  }, delay);
+}
+
+function syncContractMonths(source) {
+  if (!fields.contractMonths) return;
+  const rawValue = numberValue(source);
+  const options = Array.from(fields.contractMonths.options).map((option) => Number(option.value));
+  const min = Math.min(...options);
+  const max = Math.max(...options);
+  const value = Math.min(max, Math.max(min, Math.round(rawValue || min)));
+  const nearestValue = options.reduce((nearest, optionValue) => (
+    Math.abs(optionValue - value) < Math.abs(nearest - value) ? optionValue : nearest
+  ), options[0]);
+  fields.contractMonths.value = String(nearestValue);
 }
 
 function resetForm() {
-  fields.employeeType.value = "civil";
+  window.clearTimeout(delayedCalculateTimer);
+  fields.employeeType.value = "permanentEmployee";
   fields.salaryRemaining.value = 0;
   fields.currentMonthlyPayment.value = 0;
+  fields.desiredMonthlyPayment.value = 0;
   fields.contractMonths.value = 24;
-  document.querySelectorAll(".current-loan-amount").forEach((input) => {
+  if (fields.borrowerName) fields.borrowerName.value = "";
+  document.querySelectorAll(".salary-current-loan-amount").forEach((input) => {
     input.value = 0;
   });
   document.querySelectorAll(".requested-loan-type").forEach((select, index) => {
@@ -729,23 +827,41 @@ function resetForm() {
   document.querySelectorAll(".requested-loan-amount").forEach((input) => {
     input.value = 0;
   });
-  syncInterestRate();
+  syncContractMonths(fields.contractMonths);
   resetReportOutput();
   calculate();
 }
 
 renderDynamicTables();
-document.querySelector("#loanForm").addEventListener("input", () => {
+document.querySelector("#loanForm").addEventListener("input", (event) => {
+  resetReportOutput();
+  if (event.target === fields.desiredMonthlyPayment) {
+    scheduleCalculate();
+    return;
+  }
+  if (event.target.matches(".salary-current-loan-amount") || event.target === fields.salaryRemaining || event.target === fields.currentMonthlyPayment) {
+    scheduleCalculate();
+    return;
+  }
+  calculate();
+});
+document.querySelector("#loanForm").addEventListener("change", (event) => {
+  window.clearTimeout(delayedCalculateTimer);
   resetReportOutput();
   calculate();
 });
-document.querySelector("#loanForm").addEventListener("change", () => {
-  syncInterestRate();
+document.querySelector("#loanForm").addEventListener("focusin", (event) => {
+  if ((event.target.matches(".salary-current-loan-amount") || event.target === fields.desiredMonthlyPayment) && event.target.value === "0") {
+    event.target.select();
+  }
+});
+fields.contractMonths?.addEventListener("input", () => {
+  syncContractMonths(fields.contractMonths);
   resetReportOutput();
   calculate();
 });
 document.querySelector("#resetButton").addEventListener("click", resetForm);
 output.buildReportButton?.addEventListener("click", () => buildReportSummary({ scroll: true }));
 output.pdfButton?.addEventListener("click", createPdfDocument);
-syncInterestRate();
+syncContractMonths(fields.contractMonths);
 calculate();
