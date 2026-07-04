@@ -241,6 +241,29 @@ h1 {
   line-height: 1.65;
 }
 
+.salary-section,
+.wide-section {
+  grid-template-columns: 1fr;
+}
+
+.salary-section .section-copy,
+.wide-section .section-copy {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 14px;
+  row-gap: 4px;
+  padding-right: 0;
+  padding-bottom: 14px;
+  border-right: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.salary-section .step-number,
+.wide-section .step-number {
+  grid-row: 1 / span 2;
+  margin-bottom: 0;
+}
+
 .section-body {
   display: grid;
   gap: 16px;
@@ -248,8 +271,66 @@ h1 {
 
 .input-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+}
+
+.salary-section .input-grid {
+  grid-template-columns: minmax(140px, 1fr) minmax(150px, 1fr) minmax(140px, 1fr) minmax(260px, 1.5fr) minmax(130px, 0.85fr);
+}
+
+.salary-section .metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.salary-section .input-grid label {
+  min-height: 96px;
+  padding: 14px;
+  background: #fff8ec;
+  border: 1px solid #e5b86d;
+  border-radius: 8px;
+  align-content: space-between;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+}
+
+.salary-section .input-grid label span {
+  color: #7a5720;
+}
+
+.salary-section .input-grid input[type="number"],
+.salary-section .input-grid select {
+  min-height: 34px;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+  font-weight: 900;
+  box-shadow: none;
+}
+
+.salary-section .input-grid input[type="number"] {
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.salary-section .input-grid select {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.salary-section .input-grid .employee-type-field select {
+  font-size: 14px;
+}
+
+.salary-section .input-grid .term-months-field select {
+  font-size: 16px;
+}
+
+.salary-section .input-grid input[type="number"]:focus,
+.salary-section .input-grid select:focus {
+  background: rgba(255, 255, 255, 0.52);
+  border-color: #c98217;
+  box-shadow: 0 0 0 3px rgba(216, 137, 20, 0.15);
 }
 
 .span-2 {
@@ -280,7 +361,7 @@ label span {
   border-radius: 8px;
   color: var(--danger);
   background: var(--danger-soft);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
 }
 
@@ -289,7 +370,9 @@ label span {
 }
 
 select,
-input[type="number"] {
+input[type="number"],
+input[type="text"],
+input[type="date"] {
   width: 100%;
   min-height: 42px;
   padding: 8px 11px;
@@ -301,23 +384,25 @@ input[type="number"] {
 }
 
 select:focus,
-input[type="number"]:focus {
+input[type="number"]:focus,
+input[type="text"]:focus,
+input[type="date"]:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(14, 118, 111, 0.13);
 }
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
-}
-
-.single-metric-grid {
-  grid-template-columns: minmax(240px, 360px);
 }
 
 .repayment-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.report-input-grid {
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
 }
 
 .metric {
@@ -344,6 +429,72 @@ input[type="number"]:focus {
 .metric strong {
   font-size: 21px;
   line-height: 1.25;
+}
+
+.loan-type-picker {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfdfc;
+}
+
+.loan-type-picker > span {
+  color: var(--muted);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.loan-type-buttons {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.loan-type-button {
+  min-height: 42px;
+  border: 1px solid #cbdad6;
+  border-radius: 8px;
+  color: var(--accent-dark);
+  background: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.loan-type-block {
+  display: grid;
+  gap: 3px;
+  min-height: 58px;
+  padding: 8px 6px;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  cursor: default;
+}
+
+.loan-type-block strong {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.loan-type-block span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.loan-type-button:hover:not(.loan-type-block) {
+  border-color: var(--accent);
+  background: #f2faf8;
+}
+
+.loan-type-button.is-active {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 8px 18px rgba(14, 118, 111, 0.16);
 }
 
 .table-card {
@@ -380,7 +531,7 @@ input[type="number"]:focus {
 .loan-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 760px;
+  min-width: 900px;
 }
 
 .loan-table th,
@@ -431,17 +582,21 @@ input[type="number"]:focus {
   line-height: 1.45;
 }
 
-.loan-table tr.selected-row td {
+.loan-table tr.matched-row td {
   background: #eef8f4;
 }
 
-.loan-table tr.best-row td {
-  background: #e8f7ef;
-  box-shadow: inset 0 1px 0 #c4e5d1, inset 0 -1px 0 #c4e5d1;
+.loan-table tr.matched-row td:first-child {
+  border-left: 4px solid var(--success);
 }
 
-.loan-table tr.best-row td:first-child {
-  border-left: 4px solid var(--success);
+.loan-table tr.under-payment-row td {
+  background: #fff7e6;
+  box-shadow: inset 0 1px 0 #f3d7a5, inset 0 -1px 0 #f3d7a5;
+}
+
+.loan-table tr.under-payment-row td:first-child {
+  border-left: 4px solid #d88914;
 }
 
 .loan-table tr.invalid-row td {
@@ -604,12 +759,25 @@ input[type="number"]:focus {
 }
 
 .report-placeholder {
-  padding: 18px;
-  border: 1px dashed var(--line);
+  display: grid;
+  gap: 4px;
+  padding: 18px 20px;
+  border: 1px dashed #94b9b2;
   border-radius: 8px;
-  color: var(--muted);
-  background: #fbfcfa;
+  color: #35534d;
+  background: #f3faf7;
   font-weight: 700;
+}
+
+.report-placeholder strong {
+  color: var(--accent-dark);
+  font-size: 16px;
+}
+
+.report-placeholder span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .report-content {
@@ -668,6 +836,23 @@ input[type="number"]:focus {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.report-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.contract-summary {
+  margin-top: 10px;
+}
+
+.amortization-panel {
+  margin-top: 14px;
+}
+
 .report-table-card {
   margin-top: 0;
 }
@@ -682,11 +867,6 @@ input[type="number"]:focus {
   display: none;
 }
 
-.amortization-panel {
-  display: grid;
-  gap: 16px;
-}
-
 .amortization-contract {
   display: grid;
   gap: 10px;
@@ -694,6 +874,40 @@ input[type="number"]:focus {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
+}
+
+.amortization-head {
+  align-items: start;
+}
+
+.amortization-head h3 {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.amortization-head h3 small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.contract-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.contract-facts span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #38524c;
+  background: #eef6f3;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .amortization-contract + .amortization-contract {
@@ -782,7 +996,9 @@ input[type="number"]:focus {
   }
 
   .input-grid,
+  .salary-section .input-grid,
   .metric-grid,
+  .salary-section .metric-grid,
   .repayment-grid,
   .rules-band {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -833,9 +1049,12 @@ input[type="number"]:focus {
   }
 
   .input-grid,
+  .salary-section .input-grid,
   .metric-grid,
+  .salary-section .metric-grid,
   .repayment-grid,
   .check-list,
+  .loan-type-buttons,
   .rules-band {
     grid-template-columns: 1fr;
   }
@@ -875,6 +1094,7 @@ input[type="number"]:focus {
   .rules-band,
   .feedback-section,
   .report-section .section-copy,
+  .report-input-grid,
   .report-actions,
   .feedback-actions,
   .report-placeholder,
@@ -905,8 +1125,41 @@ input[type="number"]:focus {
   .report-title,
   .table-card,
   .check-list li,
-  .metric {
+  .metric,
+  .report-card,
+  .amortization-contract {
     break-inside: avoid;
+  }
+
+  .amortization-panel {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .amortization-panel-title {
+    display: none;
+  }
+
+  .amortization-contract {
+    padding: 6px;
+    border: 0;
+    border-radius: 0;
+    min-height: 96vh;
+  }
+
+  .amortization-contract + .amortization-contract {
+    break-before: page;
+    page-break-before: always;
+    margin-top: 0;
+  }
+
+  .amortization-head {
+    margin-bottom: 4px;
+  }
+
+  .amortization-head h3 {
+    font-size: 13px;
+    white-space: nowrap;
   }
 
   .loan-table-wrap {
@@ -915,5 +1168,12 @@ input[type="number"]:focus {
 
   .loan-table {
     min-width: 0;
+  }
+
+  .amortization-table th,
+  .amortization-table td {
+    padding: 4px 5px;
+    font-size: 10px;
+    line-height: 1.2;
   }
 }
