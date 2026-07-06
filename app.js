@@ -138,6 +138,11 @@ function principalOnlyPayment(principal, months) {
   return Math.ceil(principal / termForLoan(months));
 }
 
+function isPaymentBaseInputActive() {
+  return document.activeElement === fields.salaryRemaining ||
+    document.activeElement === fields.currentMonthlyPayment;
+}
+
 function addCheck(items, state, title, detail) {
   items.push({ state, title, detail });
 }
@@ -370,11 +375,15 @@ function buildReportViewModel(data) {
   const evaluatedLoansWithAmount = data.evaluatedLoans.filter((loan) => loan.amount > 0);
   const amortizationLoans = data.evaluatedLoans.filter((loan) => loan.approvedAmount > 0 && loanTypes[loan.type]);
   const totalEvaluationPayment = evaluatedLoansWithAmount.reduce((sum, loan) => sum + loan.approvedPayment, 0);
+  const currentLoanRows = Object.entries(data.currentLoans)
+    .filter(([, amount]) => amount > 0)
+    .map(([typeKey, amount]) => ({ typeKey, loanType: loanTypes[typeKey], amount }));
 
   return {
     data,
     amortizationLoans,
     borrowerName: fields.borrowerName?.value.trim() || "-",
+    currentLoanRows,
     evaluatedLoansWithAmount,
     printedAt: formatThaiDateTime(),
     reportStatus: data.statusMessage,
@@ -427,13 +436,16 @@ function calculate() {
   const maxNewPayment = Math.max(0, salaryPaymentBase - currentMonthlyPayment);
   const maxNewPaymentLimit = Math.floor(maxNewPayment);
   const desiredPaymentRaw = numberValue(fields.desiredMonthlyPayment);
+  const paymentBaseInputActive = isPaymentBaseInputActive();
   const desiredMonthlyPayment = maxNewPaymentLimit > 0
-    ? Math.min(maxNewPaymentLimit, desiredPaymentRaw > 0 ? desiredPaymentRaw : maxNewPaymentLimit)
+    ? Math.min(maxNewPaymentLimit, desiredPaymentRaw > 0 ? desiredPaymentRaw : paymentBaseInputActive ? 0 : maxNewPaymentLimit)
     : 0;
   const desiredPaymentActive = document.activeElement === fields.desiredMonthlyPayment;
+  const shouldFillDesiredPayment = !paymentBaseInputActive &&
+    (!desiredPaymentActive || desiredPaymentRaw === 0 || desiredPaymentRaw > maxNewPaymentLimit);
   fields.desiredMonthlyPayment.max = maxNewPaymentLimit;
   fields.desiredMonthlyPayment.placeholder = maxNewPaymentLimit > 0 ? `ไม่เกิน ${maxNewPaymentLimit.toLocaleString("th-TH")}` : "0";
-  if (!desiredPaymentActive || desiredPaymentRaw === 0 || desiredPaymentRaw > maxNewPaymentLimit) {
+  if (shouldFillDesiredPayment) {
     fields.desiredMonthlyPayment.value = desiredMonthlyPayment;
   }
   const salaryRows = Object.keys(loanTypes).map((key) => salaryEstimateForType(key, desiredMonthlyPayment, months, currentLoans));
@@ -579,6 +591,7 @@ function calculate() {
     salaryRemaining,
     currentMonthlyPayment,
     months,
+    currentLoans,
     currentDebtTotal,
     requestedTotal,
     salaryPaymentBase,
@@ -665,6 +678,13 @@ function buildReportSummary(options = {}) {
   const { data } = report;
   const printedAt = report.printedAt;
   const borrowerName = report.borrowerName;
+  const currentLoanRows = report.currentLoanRows
+    .map(({ typeKey, loanType, amount }) => `<tr>
+      <td><strong>${typeKey}</strong></td>
+      <td>${escapeHtml(loanType.label)}</td>
+      <td>${formatBaht(amount)}</td>
+    </tr>`)
+    .join("");
   const totalEvaluationPayment = report.totalEvaluationPayment;
   const requestedSummaryRows = data.evaluatedLoans
     .filter((loan) => loan.amount > 0)
@@ -735,6 +755,25 @@ function buildReportSummary(options = {}) {
         <div class="metric"><span>ยอดผ่อนสูงสุดต่อเดือน</span><strong>${formatBaht(data.maxNewPayment)}</strong></div>
         <div class="metric"><span>ระยะเวลาที่ต้องการผ่อน</span><strong>${data.months.toLocaleString("th-TH")} เดือน</strong></div>
         <div class="metric"><span>รวมค่างวดที่ใช้ประเมิน</span><strong>${formatBaht(totalEvaluationPayment)}</strong></div>
+      </div>
+
+      <div class="current-loan-summary report-card">
+        <div class="table-head">
+          <h3>ยอดเงินกู้ปัจจุบัน</h3>
+          <span>ข้อมูลจากตารางวงเงินกู้สูงสุดตามประเภทเงินกู้</span>
+        </div>
+        <div class="loan-table-wrap">
+          <table class="loan-table compact-table current-loan-summary-table">
+            <thead>
+              <tr>
+                <th>ประเภทเงินกู้</th>
+                <th>รายละเอียด</th>
+                <th>ยอดเงินกู้ปัจจุบัน</th>
+              </tr>
+            </thead>
+            <tbody>${currentLoanRows || `<tr><td colspan="3">ยังไม่ได้กรอกยอดเงินกู้ปัจจุบัน</td></tr>`}</tbody>
+          </table>
+        </div>
       </div>
 
       <div class="contract-summary report-card">
@@ -860,6 +899,8 @@ fields.contractMonths?.addEventListener("input", () => {
   resetReportOutput();
   calculate();
 });
+fields.salaryRemaining?.addEventListener("focusout", calculate);
+fields.currentMonthlyPayment?.addEventListener("focusout", calculate);
 document.querySelector("#resetButton").addEventListener("click", resetForm);
 output.buildReportButton?.addEventListener("click", () => buildReportSummary({ scroll: true }));
 output.pdfButton?.addEventListener("click", createPdfDocument);

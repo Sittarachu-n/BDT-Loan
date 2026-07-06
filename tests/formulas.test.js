@@ -35,6 +35,12 @@ function preliminaryEligibleAmount(desiredMonthlyPayment, months, employeeRemain
   ));
 }
 
+function resolveDesiredMonthlyPayment(maxNewPaymentLimit, desiredPaymentRaw, paymentBaseInputActive) {
+  return maxNewPaymentLimit > 0
+    ? Math.min(maxNewPaymentLimit, desiredPaymentRaw > 0 ? desiredPaymentRaw : paymentBaseInputActive ? 0 : maxNewPaymentLimit)
+    : 0;
+}
+
 function salaryEstimateForType(typeKey, maxNewPayment, months, currentLoans = {}) {
   const loanType = loanTypes[typeKey];
   const maxTerm = maxTermForLoan(typeKey, loanType.max);
@@ -57,6 +63,10 @@ assert.equal(principalOnlyCapacity(1000, 24), 24000);
 assert.equal(preliminaryEligibleAmount(3333, 24, 80000, 270000), 79992);
 assert.equal(preliminaryEligibleAmount(3333, 24, 50000, 270000), 50000);
 assert.equal(preliminaryEligibleAmount(3333, 24, 80000, 60000), 60000);
+assert.equal(resolveDesiredMonthlyPayment(3333, 0, true), 0);
+assert.equal(resolveDesiredMonthlyPayment(3333, 0, false), 3333);
+assert.equal(resolveDesiredMonthlyPayment(3333, 5000, false), 3333);
+assert.equal(resolveDesiredMonthlyPayment(3333, 1000, true), 1000);
 
 assert.equal(maxTermForLoan("1.2", 30000), 24);
 assert.equal(maxTermForLoan("1.2", 30001), 36);
