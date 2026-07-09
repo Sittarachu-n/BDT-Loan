@@ -1,19 +1,24 @@
 :root {
-  --bg: #f6faf9;
+  --bg: #f4f7f6;
   --surface: #ffffff;
-  --surface-soft: #edf5f2;
-  --text: #14221f;
-  --muted: #63736f;
-  --border: #d6e3df;
-  --accent: #0d766f;
-  --accent-dark: #09534f;
-  --amber: #b7791f;
-  --amber-soft: #fff4db;
-  --danger: #bd3f32;
+  --surface-soft: #eef4f1;
+  --text: #132421;
+  --muted: #5f6f6b;
+  --border: #ccd9d6;
+  --line: #dbe6e3;
+  --accent: #0f6f67;
+  --accent-dark: #084b47;
+  --official: #123c69;
+  --official-soft: #edf3f8;
+  --gold: #b88924;
+  --gold-soft: #fff7e4;
+  --amber: #9f6b14;
+  --amber-soft: #fff6df;
+  --danger: #a63a30;
   --danger-soft: #fff0ee;
-  --success: #176d4b;
-  --success-soft: #e8f7ef;
-  --shadow: 0 18px 44px rgba(24, 44, 40, 0.08);
+  --success: #1b6d4d;
+  --success-soft: #e8f5ee;
+  --shadow: 0 10px 28px rgba(28, 48, 45, 0.07);
   font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, Arial, sans-serif;
 }
 
@@ -26,6 +31,7 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
+  line-height: 1.5;
 }
 
 button,
@@ -39,14 +45,15 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 24px 40px 18px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.94);
+  padding: 22px 40px 18px;
+  border-bottom: 4px solid var(--gold);
+  background: var(--official);
+  color: #fff;
 }
 
 .org {
   margin: 0 0 4px;
-  color: var(--accent);
+  color: #d9ebf2;
   font-size: 13px;
   font-weight: 800;
 }
@@ -68,13 +75,13 @@ h1 {
 .topbar-meta {
   display: grid;
   gap: 4px;
-  color: var(--muted);
+  color: #d7e5ea;
   font-size: 13px;
   text-align: right;
 }
 
 .topbar-meta strong {
-  color: var(--text);
+  color: #fff;
 }
 
 .app-shell {
@@ -88,7 +95,7 @@ h1 {
 .rules-band article {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: var(--shadow);
 }
 
@@ -98,7 +105,7 @@ h1 {
   gap: 8px 22px;
   align-items: center;
   padding: 20px 22px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   border-color: #bde5d1;
   background: var(--success-soft);
 }
@@ -138,7 +145,7 @@ h1 {
 }
 
 .summary-panel strong {
-  font-size: 36px;
+  font-size: 34px;
   line-height: 1.1;
 }
 
@@ -154,16 +161,17 @@ h1 {
   grid-row: 1 / span 2;
   min-height: 38px;
   padding: 0 16px;
-  color: var(--accent-dark);
-  background: #f7fbfa;
-  border: 1px solid #c9dbd6;
+  color: var(--official);
+  background: #fff;
+  border: 1px solid #b7c9d4;
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .ghost-button:hover {
-  border-color: var(--accent);
+  border-color: var(--official);
+  background: var(--official-soft);
 }
 
 #resetButton {
@@ -177,16 +185,16 @@ h1 {
   min-height: 42px;
   padding: 0 18px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   color: #fff;
-  background: var(--accent);
+  background: var(--official);
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 10px 20px rgba(14, 118, 111, 0.18);
+  box-shadow: 0 8px 16px rgba(18, 60, 105, 0.16);
 }
 
 .primary-button:hover {
-  background: var(--accent-dark);
+  background: #0d3158;
 }
 
 .inline-button {
@@ -201,7 +209,7 @@ h1 {
 
 .sections {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .calc-section {
@@ -209,6 +217,7 @@ h1 {
   grid-template-columns: 280px 1fr;
   gap: 22px;
   padding: 20px;
+  border-top: 3px solid var(--official);
 }
 
 .section-copy {
@@ -223,8 +232,8 @@ h1 {
   height: 34px;
   margin-bottom: 12px;
   color: #fff;
-  background: var(--accent);
-  border-radius: 8px;
+  background: var(--official);
+  border-radius: 6px;
   font-weight: 900;
 }
 
@@ -255,7 +264,7 @@ h1 {
   padding-right: 0;
   padding-bottom: 14px;
   border-right: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .salary-section .step-number,
@@ -286,15 +295,15 @@ h1 {
 .salary-section .input-grid label {
   min-height: 96px;
   padding: 14px;
-  background: #fff8ec;
-  border: 1px solid #e5b86d;
-  border-radius: 8px;
+  background: var(--gold-soft);
+  border: 1px solid #d8b45c;
+  border-radius: 6px;
   align-content: space-between;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
 }
 
 .salary-section .input-grid label span {
-  color: #7a5720;
+  color: #624713;
 }
 
 .salary-section .input-grid input[type="number"],
@@ -329,8 +338,8 @@ h1 {
 .salary-section .input-grid input[type="number"]:focus,
 .salary-section .input-grid select:focus {
   background: rgba(255, 255, 255, 0.52);
-  border-color: #c98217;
-  box-shadow: 0 0 0 3px rgba(216, 137, 20, 0.15);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184, 137, 36, 0.16);
 }
 
 .span-2 {
@@ -358,7 +367,7 @@ label span {
 .form-alert {
   padding: 11px 14px;
   border: 1px solid #f1b5ac;
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--danger);
   background: var(--danger-soft);
   font-size: 14px;
@@ -377,7 +386,7 @@ input[type="date"] {
   min-height: 42px;
   padding: 8px 11px;
   color: var(--text);
-  background: #fbfdfc;
+  background: #fff;
   border: 1px solid #cbdad6;
   border-radius: 6px;
   outline: none;
@@ -387,8 +396,8 @@ select:focus,
 input[type="number"]:focus,
 input[type="text"]:focus,
 input[type="date"]:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 118, 111, 0.13);
+  border-color: var(--official);
+  box-shadow: 0 0 0 3px rgba(18, 60, 105, 0.13);
 }
 
 .metric-grid {
@@ -410,14 +419,16 @@ input[type="date"]:focus {
   gap: 8px;
   min-height: 96px;
   padding: 14px;
-  background: #fbfdfc;
+  background: #fff;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
+  border-left: 4px solid #c9d8d4;
 }
 
 .strong-metric {
-  background: var(--surface-soft);
-  border-color: #c4dcd6;
+  background: var(--official-soft);
+  border-color: #c7d9e6;
+  border-left-color: var(--official);
 }
 
 .metric span {
@@ -429,6 +440,7 @@ input[type="date"]:focus {
 .metric strong {
   font-size: 21px;
   line-height: 1.25;
+  color: var(--text);
 }
 
 .loan-type-picker {
@@ -436,8 +448,8 @@ input[type="date"]:focus {
   gap: 10px;
   padding: 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fbfdfc;
+  border-radius: 6px;
+  background: #fff;
 }
 
 .loan-type-picker > span {
@@ -455,8 +467,8 @@ input[type="date"]:focus {
 .loan-type-button {
   min-height: 42px;
   border: 1px solid #cbdad6;
-  border-radius: 8px;
-  color: var(--accent-dark);
+  border-radius: 6px;
+  color: var(--official);
   background: #fff;
   font-weight: 900;
   cursor: pointer;
@@ -486,24 +498,24 @@ input[type="date"]:focus {
 }
 
 .loan-type-button:hover:not(.loan-type-block) {
-  border-color: var(--accent);
-  background: #f2faf8;
+  border-color: var(--official);
+  background: var(--official-soft);
 }
 
 .loan-type-button.is-active {
-  border-color: var(--accent);
+  border-color: var(--official);
   color: #fff;
-  background: var(--accent);
-  box-shadow: 0 8px 18px rgba(14, 118, 111, 0.16);
+  background: var(--official);
+  box-shadow: 0 8px 18px rgba(18, 60, 105, 0.16);
 }
 
 .table-card {
   display: grid;
   gap: 12px;
   padding: 14px;
-  background: #fbfdfc;
+  background: #fff;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .table-head {
@@ -532,6 +544,7 @@ input[type="date"]:focus {
   width: 100%;
   border-collapse: collapse;
   min-width: 900px;
+  background: #fff;
 }
 
 .loan-table th,
@@ -543,10 +556,12 @@ input[type="date"]:focus {
 }
 
 .loan-table th {
-  color: var(--muted);
+  color: #29435d;
   font-size: 12px;
   font-weight: 900;
-  background: var(--surface-soft);
+  background: var(--official-soft);
+  border-top: 1px solid #c7d9e6;
+  border-bottom: 2px solid #bfd0dc;
 }
 
 .loan-table td {
@@ -571,8 +586,8 @@ input[type="date"]:focus {
 
 .table-input:focus,
 .table-select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 118, 111, 0.13);
+  border-color: var(--official);
+  box-shadow: 0 0 0 3px rgba(18, 60, 105, 0.13);
 }
 
 .loan-table td span {
@@ -591,12 +606,12 @@ input[type="date"]:focus {
 }
 
 .loan-table tr.under-payment-row td {
-  background: #fff7e6;
+  background: var(--gold-soft);
   box-shadow: inset 0 1px 0 #f3d7a5, inset 0 -1px 0 #f3d7a5;
 }
 
 .loan-table tr.under-payment-row td:first-child {
-  border-left: 4px solid #d88914;
+  border-left: 4px solid var(--gold);
 }
 
 .loan-table tr.invalid-row td {
@@ -607,7 +622,7 @@ input[type="date"]:focus {
   display: inline-block;
   margin-top: 0;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: 6px;
   white-space: nowrap;
   font-size: 12px;
   font-weight: 900;
@@ -740,10 +755,10 @@ input[type="date"]:focus {
   justify-content: center;
   min-height: 46px;
   padding: 0 20px;
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  color: var(--accent-dark);
-  background: #f2faf8;
+  border: 1px solid var(--official);
+  border-radius: 6px;
+  color: var(--official);
+  background: var(--official-soft);
   font-size: 14px;
   font-weight: 900;
   text-decoration: none;
@@ -752,9 +767,9 @@ input[type="date"]:focus {
 
 .feedback-button:hover,
 .feedback-button:focus-visible {
-  border-color: var(--accent-dark);
+  border-color: var(--official);
   color: #fff;
-  background: var(--accent);
+  background: var(--official);
   outline: none;
 }
 
@@ -762,15 +777,15 @@ input[type="date"]:focus {
   display: grid;
   gap: 4px;
   padding: 18px 20px;
-  border: 1px dashed #94b9b2;
-  border-radius: 8px;
-  color: #35534d;
-  background: #f3faf7;
+  border: 1px dashed #9cb4c4;
+  border-radius: 6px;
+  color: #29435d;
+  background: var(--official-soft);
   font-weight: 700;
 }
 
 .report-placeholder strong {
-  color: var(--accent-dark);
+  color: var(--official);
   font-size: 16px;
 }
 
@@ -797,7 +812,7 @@ input[type="date"]:focus {
   align-items: baseline;
   justify-content: space-between;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 3px solid var(--official);
 }
 
 .report-title span {
@@ -806,7 +821,7 @@ input[type="date"]:focus {
 }
 
 .report-title strong {
-  color: var(--accent-dark);
+  color: var(--official);
   font-size: clamp(20px, 3vw, 30px);
 }
 
@@ -815,9 +830,9 @@ input[type="date"]:focus {
   gap: 4px;
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--muted);
-  background: #fbfdfc;
+  background: var(--official-soft);
   font-size: 12px;
   font-weight: 800;
 }
@@ -825,7 +840,7 @@ input[type="date"]:focus {
 .report-note {
   padding: 11px 14px;
   border: 1px solid #f0cf8b;
-  border-radius: 8px;
+  border-radius: 6px;
   color: #76520e;
   background: var(--amber-soft);
   font-size: 13px;
@@ -841,7 +856,7 @@ input[type="date"]:focus {
   gap: 12px;
   padding: 16px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: #fff;
 }
 
@@ -872,7 +887,7 @@ input[type="date"]:focus {
   gap: 10px;
   padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
   background: #fff;
 }
 
@@ -901,9 +916,9 @@ input[type="date"]:focus {
 
 .contract-facts span {
   padding: 5px 8px;
-  border-radius: 999px;
-  color: #38524c;
-  background: #eef6f3;
+  border-radius: 6px;
+  color: #29435d;
+  background: var(--official-soft);
   font-size: 12px;
   font-weight: 900;
   line-height: 1.25;
@@ -948,6 +963,7 @@ input[type="date"]:focus {
 .rules-band article {
   padding: 16px 18px;
   box-shadow: none;
+  border-top: 3px solid var(--official);
 }
 
 .rules-band h3 {
@@ -975,7 +991,7 @@ input[type="date"]:focus {
 }
 
 .app-footer a {
-  color: var(--accent-dark);
+  color: var(--official);
   text-decoration: none;
 }
 
