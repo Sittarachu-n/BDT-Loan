@@ -49,14 +49,9 @@
                 <span>ภาระผ่อนปัจจุบันต่อเดือน</span>
                 <input id="currentMonthlyPayment" type="number" min="0" step="100" value="0" autocomplete="off" />
               </label>
-              <label class="editable-field employee-type-field">
-                <span>ประเภทบุคลากร</span>
-                <select id="employeeType">
-                  <option value="civil">ข้าราชการ</option>
-                  <option value="permanentEmployee" selected>พนักงานมหาวิทยาลัยประจำ</option>
-                  <option value="permanentWorker">ลูกจ้างประจำ</option>
-                  <option value="temporaryEmployee">พนักงานมหาวิทยาลัยชั่วคราว</option>
-                </select>
+              <label class="editable-field">
+                <span>ค่างวดที่ต้องการผ่อน</span>
+                <input id="desiredMonthlyPayment" type="number" min="0" step="100" value="0" autocomplete="off" />
               </label><label class="editable-field term-months-field">
                 <span>ระยะเวลาที่ต้องการผ่อน</span>
                 <select id="contractMonths">
@@ -97,9 +92,14 @@
                   <option value="35">35 เดือน</option>
                   <option value="36">36 เดือน</option>
                 </select>
-              </label><label class="editable-field">
-                <span>ค่างวดที่ต้องการผ่อน</span>
-                <input id="desiredMonthlyPayment" type="number" min="0" step="100" value="0" autocomplete="off" />
+              </label><label class="editable-field employee-type-field">
+                <span>ประเภทบุคลากร</span>
+                <select id="employeeType">
+                  <option value="civil">ข้าราชการ</option>
+                  <option value="permanentEmployee" selected>พนักงานมหาวิทยาลัยประจำ</option>
+                  <option value="permanentWorker">ลูกจ้างประจำ</option>
+                  <option value="temporaryEmployee">พนักงานมหาวิทยาลัยชั่วคราว</option>
+                </select>
               </label>
             </div>
 
@@ -203,10 +203,7 @@
 
           <div class="section-body">
             <div class="input-grid report-input-grid">
-              <label>
-                <span>ชื่อผู้กู้</span>
-                <input id="borrowerName" type="text" placeholder="กรอกชื่อผู้กู้" autocomplete="name" />
-              </label>
+              <label><span>คำนำหน้า</span><select id="borrowerPrefix"><option value="นาย">นาย</option><option value="นาง">นาง</option><option value="นางสาว">นางสาว</option></select></label><label><span>ชื่อ - นามสกุล</span><input id="borrowerName" type="text" placeholder="ระบุชื่อและนามสกุล" autocomplete="name" /></label>
             </div>
 
             <div class="report-actions">
@@ -304,6 +301,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script><script src="./app.js"></script>
   </body>
 </html>
+
 
 
 
