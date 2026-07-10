@@ -237,11 +237,11 @@ function renderDynamicTables() {
     )
     .join("");
 
-  fields.requestedLoanTable.innerHTML = [0, 1, 2]
+  fields.requestedLoanTable.innerHTML = [0,1]
     .map(
       (index) => `<tr>
         <td><strong>${index + 1}</strong></td>
-        <td><select class="table-select requested-loan-type" data-request-index="${index}">${loanOptions(index === 0 ? "1.1" : "")}</select></td>
+        <td><select class="table-select requested-loan-type" data-request-index="${index}">${loanOptions("")}</select></td>
         <td><input class="table-input requested-loan-amount" data-request-index="${index}" type="number" min="0" step="100" value="0" /></td>
         <td><strong data-request-payment="${index}">0 บาท</strong></td>
         <td><span class="term-status empty" data-request-result="${index}">-</span></td>
@@ -261,7 +261,7 @@ function getCurrentLoans() {
 }
 
 function getRequestedLoans() {
-  return [0, 1, 2].map((index) => {
+  return [0,1].map((index) => {
     const type = document.querySelector(`.requested-loan-type[data-request-index="${index}"]`).value;
     const amount = numberValue(document.querySelector(`.requested-loan-amount[data-request-index="${index}"]`));
     return { index, type, amount };
@@ -908,60 +908,27 @@ syncContractMonths(fields.contractMonths);
 calculate();
 
 const applicationPurposeRules = {
-  education: { required: ["1.1", "1.2"], hint: "เธ•เนเธญเธเนเธเธ 1.1 เนเธฅเธฐ 1.2 เธซเธฃเธทเธญเน€เธฅเธทเธญเธ 1.3 เธเธฃเนเธญเธก 1.6" },
-  housing: { required: ["1.1", "1.5"], hint: "เธ•เนเธญเธเนเธเธ 1.1 เนเธฅเธฐ 1.5" },
-  equipment: { required: ["1.1", "1.4"], hint: "เธ•เนเธญเธเนเธเธ 1.1 เนเธฅเธฐ 1.4" },
-  emergency: { required: ["1.1"], hint: "เธ•เนเธญเธเนเธเธ 1.1" },
-  retirement: { required: ["1.7"], hint: "เธ•เนเธญเธเนเธเธ 1.7" },
+  education: { required: ["1.1", "1.2"], hint: "ต้องแนบ 1.1 และ 1.2 หรือเลือก 1.3 พร้อม 1.6" },
+  housing: { required: ["1.1", "1.5"], hint: "ต้องแนบ 1.1 และ 1.5" },
+  equipment: { required: ["1.1", "1.4"], hint: "ต้องแนบ 1.1 และ 1.4" },
+  emergency: { required: ["1.1"], hint: "ต้องแนบ 1.1" },
+  retirement: { required: ["1.7"], hint: "ต้องแนบ 1.7" },
 };
-
 const applicationPanel = document.querySelector("#applicationPanel");
 const showProductView = (viewId) => {
   document.querySelectorAll(".product-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === viewId));
-  document.querySelectorAll(".view-panel").forEach((panel) => {
-    panel.hidden = panel.id !== viewId;
-    panel.classList.toggle("active", panel.id === viewId);
-  });
+  document.querySelectorAll(".view-panel").forEach((panel) => { panel.hidden = panel.id !== viewId; panel.classList.toggle("active", panel.id === viewId); });
 };
 document.querySelectorAll(".product-tab").forEach((tab) => tab.addEventListener("click", () => showProductView(tab.dataset.view)));
-
-const thaiAmountText = (value) => {
-  const n = Number(value || 0); if (!n) return "";
-  const digits = ["เธจเธนเธเธขเน", "เธซเธเธถเนเธ", "เธชเธญเธ", "เธชเธฒเธก", "เธชเธตเน", "เธซเนเธฒ", "เธซเธ", "เน€เธเนเธ”", "เนเธเธ”", "เน€เธเนเธฒ"];
-  const places = ["", "เธชเธดเธ", "เธฃเนเธญเธข", "เธเธฑเธ", "เธซเธกเธทเนเธ", "เนเธชเธ"];
-  const read = (group) => { let output = ""; const text = String(group); for (let i = 0; i < text.length; i += 1) { const digit = Number(text[i]); const position = text.length - i - 1; if (!digit) continue; if (position === 1 && digit === 2) output += "เธขเธตเน"; else if (position === 1 && digit === 1) output += ""; else if (position === 0 && digit === 1 && text.length > 1) output += "เน€เธญเนเธ”"; else output += digits[digit]; output += places[position] || ""; } return output; };
-  let remaining = Math.floor(n); let output = ""; let million = 0; if (!remaining) output = digits[0];
-  while (remaining > 0) { const group = remaining % 1000000; if (group) output = read(group) + (million ? "เธฅเนเธฒเธ" : "") + output; remaining = Math.floor(remaining / 1000000); million += 1; }
-  return `${output}เธเธฒเธ—เธ–เนเธงเธ`;
-};
-
-const updateApplicationAttachments = () => {
-  const selected = applicationPanel.querySelector('input[name="applicationPurpose"]:checked');
-  const rule = selected && applicationPurposeRules[selected.value];
-  const hint = applicationPanel.querySelector("#applicationRuleHint");
-  applicationPanel.querySelectorAll("[data-application-attachment]").forEach((box) => box.closest(".attachment-item").classList.remove("required-attachment"));
-  if (!rule) { hint.textContent = "เน€เธฅเธทเธญเธเธงเธฑเธ•เธ–เธธเธเธฃเธฐเธชเธเธเนเน€เธเธทเนเธญเนเธชเธ”เธเน€เธญเธเธชเธฒเธฃเนเธเธเธ—เธตเนเธ•เนเธญเธเนเธเน"; return; }
-  hint.textContent = rule.hint;
-  rule.required.forEach((id) => { const box = applicationPanel.querySelector(`[data-application-attachment="${id}"]`); if (box) { box.checked = true; box.closest(".attachment-item").classList.add("required-attachment"); } });
-};
+const thaiAmountText = (value) => { const n = Number(value || 0); if (!n) return ""; const digits = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"]; const places = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน"]; const read = (group) => { let output = ""; const text = String(group); for (let i = 0; i < text.length; i += 1) { const digit = Number(text[i]); const position = text.length - i - 1; if (!digit) continue; if (position === 1 && digit === 2) output += "ยี่"; else if (position === 1 && digit === 1) output += ""; else if (position === 0 && digit === 1 && text.length > 1) output += "เอ็ด"; else output += digits[digit]; output += places[position] || ""; } return output; }; let remaining = Math.floor(n); let output = ""; let million = 0; if (!remaining) output = digits[0]; while (remaining > 0) { const group = remaining % 1000000; if (group) output = read(group) + (million ? "ล้าน" : "") + output; remaining = Math.floor(remaining / 1000000); million += 1; } return `${output}บาทถ้วน`; };
+const updateApplicationAttachments = () => { const selected = applicationPanel.querySelector('input[name="applicationPurpose"]:checked'); const rule = selected && applicationPurposeRules[selected.value]; const hint = applicationPanel.querySelector("#applicationRuleHint"); applicationPanel.querySelectorAll("[data-application-attachment]").forEach((box) => box.closest(".attachment-item").classList.remove("required-attachment")); if (!rule) { hint.textContent = "เลือกวัตถุประสงค์เพื่อแสดงเอกสารแนบที่ต้องใช้"; return; } hint.textContent = rule.hint; rule.required.forEach((id) => { const box = applicationPanel.querySelector(`[data-application-attachment="${id}"]`); if (box) { box.checked = true; box.closest(".attachment-item").classList.add("required-attachment"); } }); };
 applicationPanel.querySelectorAll('input[name="applicationPurpose"]').forEach((radio) => radio.addEventListener("change", updateApplicationAttachments));
-
-const syncCalculationToApplication = () => {
-  if (!latestCalculation) calculate();
-  const active = latestCalculation?.evaluatedLoansActive || [];
-  const amount = active.length ? latestCalculation.approvedTotal : latestCalculation?.rightEligible || 0;
-  const payment = active.length ? latestCalculation.requestedPayment : principalOnlyPayment(amount, Number(fields.contractMonths.value));
-  document.querySelector("#applicationAmount").value = Math.max(0, Math.round(amount));
-  document.querySelector("#applicationAmountText").value = thaiAmountText(amount);
-  document.querySelector("#applicationMonths").value = fields.contractMonths.value;
-  document.querySelector("#applicationMonthlyPayment").value = Math.max(0, Math.round(payment));
-  const type = active[0]?.type;
-  const purpose = type === "1.3" ? "equipment" : type === "1.4" ? "housing" : type === "1.5" ? "emergency" : type === "1.7" ? "retirement" : "education";
-  const radio = applicationPanel.querySelector(`input[name="applicationPurpose"][value="${purpose}"]`);
-  if (radio) { radio.checked = true; updateApplicationAttachments(); }
-  showProductView("applicationPanel");
-};
+const syncBorrowerName = (value) => { document.querySelector("#borrowerName").value = value; document.querySelector("#applicationBorrowerName").value = value; };
+document.querySelector("#borrowerName")?.addEventListener("input", (event) => { document.querySelector("#applicationBorrowerName").value = event.target.value; });
+document.querySelector("#applicationBorrowerName")?.addEventListener("input", (event) => { document.querySelector("#borrowerName").value = event.target.value; });
+const syncCalculationToApplication = () => { if (!latestCalculation) calculate(); const active = latestCalculation?.evaluatedLoansActive || []; const amount = active.length ? latestCalculation.approvedTotal : latestCalculation?.rightEligible || 0; const payment = active.length ? latestCalculation.requestedPayment : principalOnlyPayment(amount, Number(fields.contractMonths.value)); document.querySelector("#applicationAmount").value = Math.max(0, Math.round(amount)); document.querySelector("#applicationAmountText").value = thaiAmountText(amount); document.querySelector("#applicationMonths").value = fields.contractMonths.value; document.querySelector("#applicationMonthlyPayment").value = Math.max(0, Math.round(payment)); syncBorrowerName(document.querySelector("#borrowerName").value); const type = active[0]?.type; const purpose = type === "1.3" ? "equipment" : type === "1.4" ? "housing" : type === "1.5" ? "emergency" : "education"; const radio = applicationPanel.querySelector(`input[name="applicationPurpose"][value="${purpose}"]`); if (radio) { radio.checked = true; updateApplicationAttachments(); } showProductView("applicationPanel"); };
 document.querySelector("#useCalculationButton").addEventListener("click", syncCalculationToApplication);
+document.querySelector("#applicationAmount").addEventListener("input", (event) => { document.querySelector("#applicationAmountText").value = thaiAmountText(event.target.value); });
 document.querySelector("#applicationClearButton").addEventListener("click", () => { applicationPanel.querySelectorAll("input,textarea").forEach((input) => { if (input.type === "checkbox" || input.type === "radio") input.checked = false; else input.value = ""; }); applicationPanel.querySelectorAll("select").forEach((select) => { select.selectedIndex = 0; }); updateApplicationAttachments(); });
-document.querySelector("#applicationPdfButton").addEventListener("click", async () => { if (!window.html2pdf) { window.print(); return; } applicationPanel.classList.add("pdf-mode"); try { await window.html2pdf().set({ margin: 10, filename: "เนเธเธเธเธณเธเธญเธเธนเนเธขเธทเธกเน€เธเธดเธเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธ—เธฒเธเธงเธดเธเธฒเธเธฒเธฃ.pdf", image: { type: "jpeg", quality: 0.96 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: "#fff" }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }, pagebreak: { mode: ["css", "avoid-all"] } }).from(applicationPanel).save(); } finally { applicationPanel.classList.remove("pdf-mode"); } });
+document.querySelector("#applicationPdfButton").addEventListener("click", async () => { if (!window.html2pdf) { window.print(); return; } applicationPanel.classList.add("pdf-mode"); try { await window.html2pdf().set({ margin: 10, filename: "academic-welfare-loan-application.pdf", image: { type: "jpeg", quality: 0.96 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: "#fff" }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }, pagebreak: { mode: ["css", "avoid-all"] } }).from(applicationPanel).save(); } finally { applicationPanel.classList.remove("pdf-mode"); } });
 
