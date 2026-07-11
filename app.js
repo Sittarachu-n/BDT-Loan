@@ -976,7 +976,7 @@ const exportApplicationPdf = async () => {
     setPdfText(form, "เขียนที่", applicationFieldValue('input[name="applicationWrittenAt"]'));
     setPdfText(form, "วันที่", applicationFieldValue('input[name="applicationDate"]'));
     setPdfText(form, "ผู้กู้", borrower);
-    setPdfText(form, "ตําแหน่ง", applicationFieldValue('input[name="applicationPosition"]'));
+    setPdfText(form, "ตําแหน่ง", applicationFieldValue('[name="applicationPosition"]'));
     setPdfText(form, "สังกัด", applicationFieldValue('select[name="applicationDepartment"]'));
     setPdfText(form, "จำนวนเงินที่ขอกู้", amount);
     setPdfText(form, "จำนวนเงินเป็นตัวอักษร", applicationFieldValue("#applicationAmountText") || thaiAmountText(amount));
