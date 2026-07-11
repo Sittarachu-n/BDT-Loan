@@ -937,3 +937,73 @@ const syncBorrowerPrefix = (value) => { const applicationPrefix = document.query
 document.querySelector("#borrowerPrefix")?.addEventListener("change", (event) => syncBorrowerPrefix(event.target.value));
 document.querySelector('select[name="applicationPrefix"]')?.addEventListener("change", (event) => { const borrowerPrefix = document.querySelector("#borrowerPrefix"); if (borrowerPrefix) borrowerPrefix.value = event.target.value; });
 
+const applicationFieldValue = (selector) => document.querySelector(selector)?.value?.trim() || "";
+const fullApplicationName = (prefixSelector, nameSelector) => [applicationFieldValue(prefixSelector), applicationFieldValue(nameSelector)].filter(Boolean).join(" ");
+const setPdfText = (form, fieldName, value) => {
+  try { form.getTextField(fieldName).setText(value || ""); } catch (error) { console.warn(`ไม่พบช่อง PDF: ${fieldName}`, error); }
+};
+const setPdfAttachment = (form, fieldName, checked) => {
+  try {
+    const checkbox = form.getCheckBox(fieldName);
+    if (checked) checkbox.check(); else checkbox.uncheck();
+    return;
+  } catch (error) { /* ช่องเอกสารแนบบางโปรแกรมสร้างเป็น radio แบบมีตัวเลือกเดียว */ }
+  const radio = form.getRadioGroup(fieldName);
+  if (checked) radio.select("Yes"); else radio.clear();
+};
+const exportApplicationPdf = async () => {
+  const button = document.querySelector("#applicationPdfButton");
+  const purpose = applicationPanel.querySelector('input[name="applicationPurpose"]:checked')?.value;
+  const borrower = fullApplicationName('select[name="applicationPrefix"]', "#applicationBorrowerName");
+  const amount = applicationFieldValue("#applicationAmount");
+  const months = applicationFieldValue("#applicationMonths");
+  const monthlyPayment = applicationFieldValue("#applicationMonthlyPayment");
+  if (!borrower || !amount || !months || !monthlyPayment || !purpose) {
+    alert("กรุณากรอกชื่อผู้กู้ จำนวนเงิน จำนวนงวด ค่างวดรายเดือน และวัตถุประสงค์ก่อนส่งออก PDF");
+    return;
+  }
+  if (!window.PDFLib || !window.PDF_TEMPLATE_BASE64) {
+    alert("ไม่สามารถเปิดแม่แบบ PDF ได้ กรุณาลองใหม่อีกครั้ง");
+    return;
+  }
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "กำลังสร้าง PDF...";
+  try {
+    const bytes = Uint8Array.from(atob(window.PDF_TEMPLATE_BASE64), (character) => character.charCodeAt(0));
+    const pdfDocument = await window.PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+    const form = pdfDocument.getForm();
+    setPdfText(form, "เขียนที่", applicationFieldValue('input[name="applicationWrittenAt"]'));
+    setPdfText(form, "วันที่", applicationFieldValue('input[name="applicationDate"]'));
+    setPdfText(form, "ผู้กู้", borrower);
+    setPdfText(form, "ตำแหน่ง", applicationFieldValue('input[name="applicationPosition"]'));
+    setPdfText(form, "สังกัด", applicationFieldValue('select[name="applicationDepartment"]'));
+    setPdfText(form, "จำนวนเงินที่ขอกู้", amount);
+    setPdfText(form, "จำนวนเงินเป็นตัวอักษร", applicationFieldValue("#applicationAmountText") || thaiAmountText(amount));
+    setPdfText(form, "ระยะเวลาผ่อน (เดือน)", months);
+    setPdfText(form, "ยอดผ่อนรายเดือน", monthlyPayment);
+    setPdfText(form, "ผู้ค้ำ ที่1", fullApplicationName('select[name="applicationGuarantor1Prefix"]', 'input[name="applicationGuarantor1"]'));
+    setPdfText(form, "ผู้ค้ำ ที่2", fullApplicationName('select[name="applicationGuarantor2Prefix"]', 'input[name="applicationGuarantor2"]'));
+    setPdfText(form, "ข้าพเจ้า", borrower);
+    form.getRadioGroup("loan_purpose").select(purpose);
+    applicationPanel.querySelectorAll("[data-application-attachment]").forEach((input) => {
+      setPdfAttachment(form, `attachment_${input.dataset.applicationAttachment.replace('.', '_')}`, input.checked);
+    });
+    form.acroForm.dict.set(window.PDFLib.PDFName.of("NeedAppearances"), window.PDFLib.PDFBool.True);
+    const completedPdf = await pdfDocument.save({ updateFieldAppearances: false });
+    const downloadUrl = URL.createObjectURL(new Blob([completedPdf], { type: "application/pdf" }));
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `คำขอกู้ยืมเงินสวัสดิการ-${borrower.replace(/\s+/g, "-") || "ผู้กู้"}.pdf`;
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error(error);
+    alert("สร้าง PDF ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
+};
+document.querySelector("#applicationPdfButton")?.addEventListener("click", exportApplicationPdf);
+
