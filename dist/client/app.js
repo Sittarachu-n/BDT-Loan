@@ -912,7 +912,7 @@ const applicationPurposeRules = {
   housing: { required: ["1.1", "1.5"], hint: "ต้องแนบ 1.1 และ 1.5" },
   equipment: { required: ["1.1", "1.4"], hint: "ต้องแนบ 1.1 และ 1.4" },
   emergency: { required: ["1.1"], hint: "ต้องแนบ 1.1" },
-  childTuition: { required: ["1.1", "1.3", "1.6"], hint: "ระบบเลือกเอกสารเบื้องต้น: 1.1, 1.3 และ 1.6 โปรดตรวจสอบความครบถ้วนก่อนส่งออก" },
+  retirement: { required: ["1.7"], hint: "ระบบเลือกเอกสารเบื้องต้น: 1.7 โปรดตรวจสอบความครบถ้วนก่อนส่งออก" },
 };
 const applicationPanel = document.querySelector("#applicationPanel");
 const showProductView = (viewId) => {
@@ -926,7 +926,7 @@ applicationPanel.querySelectorAll('input[name="applicationPurpose"]').forEach((r
 const syncBorrowerName = (value) => { document.querySelector("#borrowerName").value = value; document.querySelector("#applicationBorrowerName").value = value; };
 document.querySelector("#borrowerName")?.addEventListener("input", (event) => { document.querySelector("#applicationBorrowerName").value = event.target.value; });
 document.querySelector("#applicationBorrowerName")?.addEventListener("input", (event) => { document.querySelector("#borrowerName").value = event.target.value; });
-const syncCalculationToApplication = () => { if (!latestCalculation) calculate(); const active = latestCalculation?.evaluatedLoansActive || []; const amount = active.length ? latestCalculation.approvedTotal : latestCalculation?.rightEligible || 0; const payment = active.length ? latestCalculation.requestedPayment : principalOnlyPayment(amount, Number(fields.contractMonths.value)); document.querySelector("#applicationAmount").value = Math.max(0, Math.round(amount)); document.querySelector("#applicationAmountText").value = thaiAmountText(amount); document.querySelector("#applicationMonths").value = fields.contractMonths.value; document.querySelector("#applicationMonthlyPayment").value = Math.max(0, Math.round(payment)); syncBorrowerPrefix(document.querySelector("#borrowerPrefix").value); syncBorrowerName(document.querySelector("#borrowerName").value); const type = active[0]?.type; const purpose = type === "1.3" ? "equipment" : type === "1.4" ? "housing" : type === "1.5" ? "emergency" : type === "1.6" ? "childTuition" : "education"; const radio = applicationPanel.querySelector(`input[name="applicationPurpose"][value="${purpose}"]`); if (radio) { radio.checked = true; updateApplicationAttachments(); } showProductView("applicationPanel"); };
+const syncCalculationToApplication = () => { if (!latestCalculation) calculate(); const active = latestCalculation?.evaluatedLoansActive || []; const amount = active.length ? latestCalculation.approvedTotal : latestCalculation?.rightEligible || 0; const payment = active.length ? latestCalculation.requestedPayment : principalOnlyPayment(amount, Number(fields.contractMonths.value)); document.querySelector("#applicationAmount").value = Math.max(0, Math.round(amount)); document.querySelector("#applicationAmountText").value = thaiAmountText(amount); document.querySelector("#applicationMonths").value = fields.contractMonths.value; document.querySelector("#applicationMonthlyPayment").value = Math.max(0, Math.round(payment)); syncBorrowerPrefix(document.querySelector("#borrowerPrefix").value); syncBorrowerName(document.querySelector("#borrowerName").value); const type = active[0]?.type; const purpose = type === "1.3" ? "equipment" : type === "1.4" ? "housing" : type === "1.5" ? "emergency" : "education"; const radio = applicationPanel.querySelector(`input[name="applicationPurpose"][value="${purpose}"]`); if (radio) { radio.checked = true; updateApplicationAttachments(); } showProductView("applicationPanel"); };
 document.querySelector("#useCalculationButton").addEventListener("click", syncCalculationToApplication);
 document.querySelector("#applicationAmount").addEventListener("input", (event) => { document.querySelector("#applicationAmountText").value = thaiAmountText(event.target.value); });
 document.querySelector("#applicationClearButton").addEventListener("click", () => { applicationPanel.querySelectorAll("input,textarea").forEach((input) => { if (input.type === "checkbox" || input.type === "radio") input.checked = false; else input.value = ""; }); applicationPanel.querySelectorAll("select").forEach((select) => { select.selectedIndex = 0; }); document.querySelector('input[name="applicationWrittenAt"]').value = "สำนักดิจิทัลเทคโนโลยี"; updateApplicationAttachments(); });
@@ -985,7 +985,7 @@ const exportApplicationPdf = async () => {
     setPdfText(form, "ผู้ค้ำ ที่1", fullApplicationName('select[name="applicationGuarantor1Prefix"]', 'input[name="applicationGuarantor1"]'));
     setPdfText(form, "ผู้ค้ำ ที่2", fullApplicationName('select[name="applicationGuarantor2Prefix"]', 'input[name="applicationGuarantor2"]'));
     setPdfText(form, "ข้าพเจ้า", borrower);
-    form.getRadioGroup("loan_purpose").select(purpose === "childTuition" ? "retirement" : purpose);
+    form.getRadioGroup("loan_purpose").select(purpose);
     applicationPanel.querySelectorAll("[data-application-attachment]").forEach((input) => {
       setPdfAttachment(form, `attachment_${input.dataset.applicationAttachment.replace('.', '_')}`, input.checked);
     });
