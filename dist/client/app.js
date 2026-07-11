@@ -573,7 +573,7 @@ function calculate() {
   const requestedOverEligible = evaluatedLoansActive.some((loan) => loan.amount > loan.approvedAmount);
   const missingSalary = salaryRemaining <= 0;
   const alertMessages = [];
-  if (missingSalary) alertMessages.push("กรุณากรอกยอดเงินเดือนคงเหลือเพื่อประเมินสิทธิ");
+  if (missingSalary) alertMessages.push("กรุณากรอกยอดเงินเดือนคงเหลือเพื่อประเมินสิทธิกู้");
   alertMessages.push(...debtPaymentMismatchMessages);
   const summaryState = missingSalary ? "fail" : requestedOverEligible ? "partial" : failed ? "fail" : "pass";
   const statusMessage = missingSalary
@@ -753,7 +753,7 @@ function buildReportSummary(options = {}) {
         <div class="metric"><span>ยอดเงินกู้ที่ต้องการ</span><strong>${formatBaht(data.requestedTotal)}</strong></div>
         <div class="metric"><span>ยอดเงินเดือนคงเหลือ</span><strong>${formatBaht(data.salaryRemaining)}</strong></div>
         <div class="metric"><span>ยอดผ่อนสูงสุดต่อเดือน</span><strong>${formatBaht(data.maxNewPayment)}</strong></div>
-        <div class="metric"><span>ระยะเวลาที่ต้องการผ่อน</span><strong>${data.months.toLocaleString("th-TH")} เดือน</strong></div>
+        <div class="metric"><span>ระยะเวลาผ่อนชำระ</span><strong>${data.months.toLocaleString("th-TH")} เดือน</strong></div>
         <div class="metric"><span>รวมค่างวดที่ใช้ประเมิน</span><strong>${formatBaht(totalEvaluationPayment)}</strong></div>
       </div>
 
@@ -908,11 +908,11 @@ syncContractMonths(fields.contractMonths);
 calculate();
 
 const applicationPurposeRules = {
-  education: { required: ["1.1", "1.2"], hint: "ต้องแนบ 1.1 และ 1.2 หรือเลือก 1.3 พร้อม 1.6" },
+  education: { required: ["1.1", "1.2"], hint: "ระบบเลือกเอกสารเบื้องต้น: 1.1 และ 1.2 โปรดตรวจสอบเอกสารการศึกษา/ลงทะเบียนให้ครบถ้วน" },
   housing: { required: ["1.1", "1.5"], hint: "ต้องแนบ 1.1 และ 1.5" },
   equipment: { required: ["1.1", "1.4"], hint: "ต้องแนบ 1.1 และ 1.4" },
   emergency: { required: ["1.1"], hint: "ต้องแนบ 1.1" },
-  retirement: { required: ["1.7"], hint: "ต้องแนบ 1.7" },
+  childTuition: { required: ["1.1", "1.3", "1.6"], hint: "ระบบเลือกเอกสารเบื้องต้น: 1.1, 1.3 และ 1.6 โปรดตรวจสอบความครบถ้วนก่อนส่งออก" },
 };
 const applicationPanel = document.querySelector("#applicationPanel");
 const showProductView = (viewId) => {
@@ -921,15 +921,15 @@ const showProductView = (viewId) => {
 };
 document.querySelectorAll(".product-tab").forEach((tab) => tab.addEventListener("click", () => showProductView(tab.dataset.view)));
 const thaiAmountText = (value) => { const n = Number(value || 0); if (!n) return ""; const digits = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"]; const places = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน"]; const read = (group) => { let output = ""; const text = String(group); for (let i = 0; i < text.length; i += 1) { const digit = Number(text[i]); const position = text.length - i - 1; if (!digit) continue; if (position === 1 && digit === 2) output += "ยี่"; else if (position === 1 && digit === 1) output += ""; else if (position === 0 && digit === 1 && text.length > 1) output += "เอ็ด"; else output += digits[digit]; output += places[position] || ""; } return output; }; let remaining = Math.floor(n); let output = ""; let million = 0; if (!remaining) output = digits[0]; while (remaining > 0) { const group = remaining % 1000000; if (group) output = read(group) + (million ? "ล้าน" : "") + output; remaining = Math.floor(remaining / 1000000); million += 1; } return `${output}บาทถ้วน`; };
-const updateApplicationAttachments = () => { const selected = applicationPanel.querySelector('input[name="applicationPurpose"]:checked'); const rule = selected && applicationPurposeRules[selected.value]; const hint = applicationPanel.querySelector("#applicationRuleHint"); applicationPanel.querySelectorAll("[data-application-attachment]").forEach((box) => box.closest(".attachment-item").classList.remove("required-attachment")); if (!rule) { hint.textContent = "เลือกวัตถุประสงค์เพื่อแสดงเอกสารแนบที่ต้องใช้"; return; } hint.textContent = rule.hint; rule.required.forEach((id) => { const box = applicationPanel.querySelector(`[data-application-attachment="${id}"]`); if (box) { box.checked = true; box.closest(".attachment-item").classList.add("required-attachment"); } }); };
+const updateApplicationAttachments = () => { const selected = applicationPanel.querySelector('input[name="applicationPurpose"]:checked'); const rule = selected && applicationPurposeRules[selected.value]; const hint = applicationPanel.querySelector("#applicationRuleHint"); applicationPanel.querySelectorAll("[data-application-attachment]").forEach((box) => box.closest(".attachment-item").classList.remove("required-attachment")); if (!rule) { hint.textContent = "เลือกวัตถุประสงค์เพื่อให้ระบบเลือกเอกสารแนบเบื้องต้น"; return; } hint.textContent = rule.hint; rule.required.forEach((id) => { const box = applicationPanel.querySelector(`[data-application-attachment="${id}"]`); if (box) { box.checked = true; box.closest(".attachment-item").classList.add("required-attachment"); } }); };
 applicationPanel.querySelectorAll('input[name="applicationPurpose"]').forEach((radio) => radio.addEventListener("change", updateApplicationAttachments));
 const syncBorrowerName = (value) => { document.querySelector("#borrowerName").value = value; document.querySelector("#applicationBorrowerName").value = value; };
 document.querySelector("#borrowerName")?.addEventListener("input", (event) => { document.querySelector("#applicationBorrowerName").value = event.target.value; });
 document.querySelector("#applicationBorrowerName")?.addEventListener("input", (event) => { document.querySelector("#borrowerName").value = event.target.value; });
-const syncCalculationToApplication = () => { if (!latestCalculation) calculate(); const active = latestCalculation?.evaluatedLoansActive || []; const amount = active.length ? latestCalculation.approvedTotal : latestCalculation?.rightEligible || 0; const payment = active.length ? latestCalculation.requestedPayment : principalOnlyPayment(amount, Number(fields.contractMonths.value)); document.querySelector("#applicationAmount").value = Math.max(0, Math.round(amount)); document.querySelector("#applicationAmountText").value = thaiAmountText(amount); document.querySelector("#applicationMonths").value = fields.contractMonths.value; document.querySelector("#applicationMonthlyPayment").value = Math.max(0, Math.round(payment)); syncBorrowerPrefix(document.querySelector("#borrowerPrefix").value); syncBorrowerName(document.querySelector("#borrowerName").value); const type = active[0]?.type; const purpose = type === "1.3" ? "equipment" : type === "1.4" ? "housing" : type === "1.5" ? "emergency" : "education"; const radio = applicationPanel.querySelector(`input[name="applicationPurpose"][value="${purpose}"]`); if (radio) { radio.checked = true; updateApplicationAttachments(); } showProductView("applicationPanel"); };
+const syncCalculationToApplication = () => { if (!latestCalculation) calculate(); const active = latestCalculation?.evaluatedLoansActive || []; const amount = active.length ? latestCalculation.approvedTotal : latestCalculation?.rightEligible || 0; const payment = active.length ? latestCalculation.requestedPayment : principalOnlyPayment(amount, Number(fields.contractMonths.value)); document.querySelector("#applicationAmount").value = Math.max(0, Math.round(amount)); document.querySelector("#applicationAmountText").value = thaiAmountText(amount); document.querySelector("#applicationMonths").value = fields.contractMonths.value; document.querySelector("#applicationMonthlyPayment").value = Math.max(0, Math.round(payment)); syncBorrowerPrefix(document.querySelector("#borrowerPrefix").value); syncBorrowerName(document.querySelector("#borrowerName").value); const type = active[0]?.type; const purpose = type === "1.3" ? "equipment" : type === "1.4" ? "housing" : type === "1.5" ? "emergency" : type === "1.6" ? "childTuition" : "education"; const radio = applicationPanel.querySelector(`input[name="applicationPurpose"][value="${purpose}"]`); if (radio) { radio.checked = true; updateApplicationAttachments(); } showProductView("applicationPanel"); };
 document.querySelector("#useCalculationButton").addEventListener("click", syncCalculationToApplication);
 document.querySelector("#applicationAmount").addEventListener("input", (event) => { document.querySelector("#applicationAmountText").value = thaiAmountText(event.target.value); });
-document.querySelector("#applicationClearButton").addEventListener("click", () => { applicationPanel.querySelectorAll("input,textarea").forEach((input) => { if (input.type === "checkbox" || input.type === "radio") input.checked = false; else input.value = ""; }); applicationPanel.querySelectorAll("select").forEach((select) => { select.selectedIndex = 0; }); updateApplicationAttachments(); });
+document.querySelector("#applicationClearButton").addEventListener("click", () => { applicationPanel.querySelectorAll("input,textarea").forEach((input) => { if (input.type === "checkbox" || input.type === "radio") input.checked = false; else input.value = ""; }); applicationPanel.querySelectorAll("select").forEach((select) => { select.selectedIndex = 0; }); document.querySelector('input[name="applicationWrittenAt"]').value = "สำนักดิจิทัลเทคโนโลยี"; updateApplicationAttachments(); });
 
 
 
@@ -985,7 +985,7 @@ const exportApplicationPdf = async () => {
     setPdfText(form, "ผู้ค้ำ ที่1", fullApplicationName('select[name="applicationGuarantor1Prefix"]', 'input[name="applicationGuarantor1"]'));
     setPdfText(form, "ผู้ค้ำ ที่2", fullApplicationName('select[name="applicationGuarantor2Prefix"]', 'input[name="applicationGuarantor2"]'));
     setPdfText(form, "ข้าพเจ้า", borrower);
-    form.getRadioGroup("loan_purpose").select(purpose);
+    form.getRadioGroup("loan_purpose").select(purpose === "childTuition" ? "retirement" : purpose);
     applicationPanel.querySelectorAll("[data-application-attachment]").forEach((input) => {
       setPdfAttachment(form, `attachment_${input.dataset.applicationAttachment.replace('.', '_')}`, input.checked);
     });

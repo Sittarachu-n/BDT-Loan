@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ระบบเงินกู้สวัสดิการ: ประเมินสิทธิและแบบคำขอ</title>
+    <title>ระบบเงินกู้สวัสดิการทางวิชาการ: ประเมินสิทธิกู้และแบบคำขอ</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -13,15 +13,15 @@
     <header class="topbar">
       <div>
         <p class="org">สำนักดิจิทัลเทคโนโลยี มหาวิทยาลัยศิลปากร</p>
-        <h1>ระบบเงินกู้สวัสดิการ: ประเมินสิทธิและแบบคำขอ</h1>
+        <h1>ระบบเงินกู้สวัสดิการทางวิชาการ: ประเมินสิทธิกู้และแบบคำขอ</h1>
       </div>
       <div class="topbar-meta">
         <span>อ้างอิงหลักเกณฑ์ประกาศ 20 มกราคม 2564</span>
-        <strong>ประเมินสิทธิจากเงินเดือนคงเหลือ สิทธิคงเหลือ และตารางผ่อนชำระ</strong>
+        <strong>ประเมินสิทธิกู้จากเงินเดือนคงเหลือ สิทธิคงเหลือ และตารางผ่อนชำระ</strong>
       </div>
     </header>
 
-    <main class="app-shell"><nav class="product-nav" aria-label="สลับระบบ"><button class="product-tab active" type="button" data-view="calculatorPanel">01 ประเมินสิทธิและคำนวณค่างวด</button><button class="product-tab" type="button" data-view="applicationPanel">02 แบบคำขอกู้ยืมเงิน</button></nav><div id="calculatorPanel" class="view-panel active">
+    <main class="app-shell"><nav class="product-nav" aria-label="สลับระบบ"><button class="product-tab active" type="button" data-view="calculatorPanel">01 ประเมินสิทธิกู้และคำนวณค่างวด</button><button class="product-tab" type="button" data-view="applicationPanel">02 แบบคำขอกู้ยืมเงิน</button></nav><div id="calculatorPanel" class="view-panel active">
       <section class="summary-panel" aria-live="polite">
         <div>
           <span id="statusText">มีสิทธิกู้ตามเงื่อนไขเบื้องต้น</span>
@@ -50,10 +50,10 @@
                 <input id="currentMonthlyPayment" type="number" min="0" step="100" value="0" autocomplete="off" />
               </label>
               <label class="editable-field">
-                <span>ค่างวดที่ต้องการผ่อน</span>
+                <span>ค่างวดที่ต้องการผ่อนชำระต่อเดือน</span>
                 <input id="desiredMonthlyPayment" type="number" min="0" step="100" value="0" autocomplete="off" />
               </label><label class="editable-field term-months-field">
-                <span>ระยะเวลาที่ต้องการผ่อน</span>
+                <span>ระยะเวลาผ่อนชำระ (เดือน)</span>
                 <select id="contractMonths">
                   <option value="1">1 เดือน</option>
                   <option value="2">2 เดือน</option>
@@ -104,7 +104,7 @@
             </div>
 
             <div class="form-alert" id="salaryAlert" role="status">
-              กรุณากรอกยอดเงินเดือนคงเหลือเพื่อประเมินสิทธิ
+              กรุณากรอกยอดเงินเดือนคงเหลือเพื่อประเมินสิทธิกู้
             </div>
 
             <div class="metric-grid">
@@ -117,7 +117,7 @@
                 <strong id="maxNewPayment">0 บาท</strong>
               </div>
               <div class="metric">
-                <span>ระยะเวลาที่ต้องการผ่อน</span>
+                <span>ระยะเวลาผ่อนชำระ (เดือน)</span>
                 <strong id="termMonths">0 เดือน</strong>
               </div>
               <div class="metric strong-metric">
@@ -155,7 +155,7 @@
           <div class="section-copy">
             <span class="step-number">2</span>
             <h2>ตรวจสอบสิทธิคงเหลือและสัญญาเงินกู้ที่ต้องการ</h2>
-            <p>ระบุสัญญาเงินกู้ที่ต้องการ ระบบจะพิจารณาตามลำดับสัญญา 1 ถึง 3 โดยใช้ข้อมูลจากส่วนที่ 1</p>
+            <p>ระบุสัญญาเงินกู้ที่ต้องการ ระบบจะพิจารณาตามลำดับสัญญาที่ 1 ถึง 2 โดยใช้ข้อมูลจากส่วนที่ 1</p>
           </div>
 
           <div class="section-body">
@@ -256,7 +256,7 @@
         <section class="feedback-section" aria-label="แจ้งปัญหาและข้อเสนอแนะ">
           <div>
             <h2>แจ้งปัญหาและข้อเสนอแนะ</h2>
-            <p>ส่งความคิดเห็นเพื่อช่วยปรับปรุงการใช้งานระบบประเมินสิทธิเงินกู้</p>
+            <p>ส่งความคิดเห็นเพื่อช่วยปรับปรุงการใช้งานระบบประเมินสิทธิกู้</p>
           </div>
           <a
             class="feedback-button"
@@ -283,18 +283,18 @@
           </article>
         </section>
       </form></div><section id="applicationPanel" class="view-panel application-panel" hidden>
-  <div class="application-hero"><div><span class="application-kicker">ส่วนที่ 2</span><h2>แบบคำขอกู้ยืมเงินสวัสดิการทางวิชาการ</h2><p>กรอกข้อมูลคำขอ และใช้ค่าจากผลการประเมินสิทธิ์ได้ทันที</p></div><button class="primary-button" type="button" id="useCalculationButton">ดึงค่าจากผลคำนวณ</button></div>
-  <section class="application-card"><div class="application-heading"><span class="step-number">01</span><div><h2>ข้อมูลคำขอ</h2><p>เลขที่เอกสาร สถานที่ และวันที่จัดทำคำขอ</p></div></div><div class="application-grid three"><label>เลขที่<input name="applicationDocNo" type="text" placeholder="เช่น 001/2569"></label><label>เขียนที่<input name="applicationWrittenAt" type="text" value="สำนักดิจิทัลเทคโนโลยี"></label><label>วันที่<input name="applicationDate" type="text" placeholder="วัน/เดือน/ปี"></label></div></section>
+  <div class="application-hero"><div><span class="application-kicker">ส่วนที่ 2</span><h2>แบบคำขอกู้ยืมเงินสวัสดิการทางวิชาการ</h2><p>กรอกข้อมูลคำขอ และใช้ค่าจากผลการประเมินสิทธิกู้ได้ทันที</p></div><button class="primary-button" type="button" id="useCalculationButton">ดึงข้อมูลจากผลการประเมิน</button></div>
+  <section class="application-card"><div class="application-heading"><span class="step-number">01</span><div><h2>ข้อมูลคำขอ</h2><p>สถานที่และวันที่จัดทำคำขอ</p></div></div><div class="application-grid three"><label>เลขที่คำขอ (สำหรับเจ้าหน้าที่)<input name="applicationDocNo" type="text" placeholder="เช่น 001/2569"></label><label>เขียนที่<input name="applicationWrittenAt" type="text" value="สำนักดิจิทัลเทคโนโลยี"></label><label>วันที่<input name="applicationDate" type="text" placeholder="วัน/เดือน/ปี"></label></div><p class="application-export-note">เลขที่คำขอเป็นข้อมูลสำหรับบันทึกภายใน และไม่แสดงใน PDF เนื่องจากแม่แบบไม่มีช่องรองรับ</p></section>
   <section class="application-card"><div class="application-heading"><span class="step-number">02</span><div><h2>ข้อมูลผู้กู้</h2><p>รายละเอียดผู้ยื่นคำขอกู้ยืมเงิน</p></div></div><div class="application-grid two"><label>คำนำหน้า<select name="applicationPrefix"><option>นาย</option><option>นาง</option><option>นางสาว</option></select></label><label>ชื่อ - นามสกุล<input id="applicationBorrowerName" name="applicationBorrowerName" type="text" placeholder="ระบุชื่อและนามสกุล"></label><label>ตำแหน่ง<select name="applicationPosition"><option value="">เลือกตำแหน่ง</option><option>นักคอมพิวเตอร์ชำนาญการ</option><option>นักคอมพิวเตอร์ปฏิบัติการ</option><option>นักเทคโนโลยีสารสนเทศปฏิบัติการ</option><option>นักวิชาการคอมพิวเตอร์ชำนาญการพิเศษ</option><option>นักวิชาการอุดมศึกษา</option><option>พนักงานทั่วไป</option><option>นักบริหารงานบุคคลปฏิบัติการ</option><option>นักวิชาการคอมพิวเตอร์ชำนาญการ</option><option>นักวิชาการศึกษาชำนาญการ</option><option>นักวิชาการอุดมศึกษาปฏิบัติการ</option><option>นักเทคโนโลยีสารสนเทศชำนาญการ</option><option>ช่างไฟฟ้า</option><option>นักการเงินปฏิบัติการ</option><option>นักพัสดุปฏิบัติการ</option><option>นักวิชาการอุดมศึกษาชำนาญการ</option><option>นักเทคโนโลยีสารสนเทศ</option><option>ผู้ปฏิบัติงานช่าง</option><option>พนักงานธุรการ</option><option>หัวหน้าฝ่ายนวัตกรรมและวิชาการ</option><option>หัวหน้าฝ่ายบริการดิจิทัลเทคโนโลยี</option><option>หัวหน้าฝ่ายบริหารและพัฒนาดิจิทัลเทคโนโลยี</option><option>เลขานุการสำนักดิจิทัลเทคโนโลยี</option></select></label><label>สังกัด<select name="applicationDepartment"><option value="">เลือกสังกัด</option><option>ฝ่ายบริการดิจิทัลเทคโนโลยี</option><option>ฝ่ายบริหารและพัฒนาดิจิทัลเทคโนโลยี</option><option>ฝ่ายนวัตกรรมและวิชาการ</option><option>สำนักงานสำนักดิจิทัลเทคโนโลยี</option></select></label></div></section>
-  <section class="application-card"><div class="application-heading"><span class="step-number">03</span><div><h2>รายละเอียดการกู้</h2><p>ค่าที่ได้จากระบบประเมินสิทธิ์จะถูกส่งมายังส่วนนี้</p></div></div><div class="application-grid two"><label>จำนวนเงินที่ขอกู้ (บาท)<input id="applicationAmount" name="applicationAmount" type="number" min="0" step="100"></label><label>จำนวนเงินเป็นตัวอักษร<input id="applicationAmountText" name="applicationAmountText" type="text"></label></div><fieldset><legend>วัตถุประสงค์ของการกู้</legend><p class="rule-hint" id="applicationRuleHint">เลือกวัตถุประสงค์เพื่อแสดงเอกสารแนบที่ต้องใช้</p><div class="purpose-grid"><label><input name="applicationPurpose" value="education" type="radio"> เพื่อการศึกษา อบรม หรือเสนอผลงานวิจัย</label><label><input name="applicationPurpose" value="housing" type="radio"> เพื่อปรับปรุงที่อยู่อาศัย</label><label><input name="applicationPurpose" value="equipment" type="radio"> เพื่อจัดหาเครื่องมือทางวิชาการ</label><label><input name="applicationPurpose" value="emergency" type="radio"> เพื่อฉุกเฉิน</label><label><input name="applicationPurpose" value="retirement" type="radio"> เพื่อสมนาคุณการเกษียณงานหรือลาออกจากงาน</label></div></fieldset><div class="application-grid two"><label>จำนวนงวดที่ต้องการผ่อน (เดือน)<input id="applicationMonths" name="applicationMonths" type="number" min="1"></label><label>ผ่อนชำระเดือนละ (บาท)<input id="applicationMonthlyPayment" name="applicationMonthlyPayment" type="number" min="0" step="100"></label></div></section>
-  <section class="application-card"><div class="application-heading"><span class="step-number">04</span><div><h2>เอกสารแนบ</h2><p>ระบบจะเลือกและไฮไลต์เอกสารตามวัตถุประสงค์ที่เลือก</p></div></div><div class="attachment-grid"><label class="attachment-item"><input data-application-attachment="1.1" type="checkbox"><span><b>1.1</b> สลิปเงินเดือน (เดือนล่าสุด)</span></label><label class="attachment-item"><input data-application-attachment="1.2" type="checkbox"><span><b>1.2</b> หลักฐานการลงทะเบียน / ใบเสร็จค่าลงทะเบียน</span></label><label class="attachment-item"><input data-application-attachment="1.3" type="checkbox"><span><b>1.3</b> ใบเสร็จค่าลงทะเบียน</span></label><label class="attachment-item"><input data-application-attachment="1.4" type="checkbox"><span><b>1.4</b> ใบเสนอราคาหรือใบเสร็จกำกับภาษีจัดซื้ออุปกรณ์ฯ</span></label><label class="attachment-item"><input data-application-attachment="1.5" type="checkbox"><span><b>1.5</b> ใบเสนอราคาหรือใบเสร็จกำกับภาษีค่าจ้างต่อเติม</span></label><label class="attachment-item"><input data-application-attachment="1.6" type="checkbox"><span><b>1.6</b> ใบสูติบัตรของบุตร</span></label><label class="attachment-item"><input data-application-attachment="1.7" type="checkbox"><span><b>1.7</b> หนังสือรับรองอายุงาน</span></label></div></section>
-  <section class="application-card"><div class="application-heading"><span class="step-number">05</span><div><h2>ผู้ค้ำประกันและการรับเงิน</h2><p>กรอกข้อมูลสำหรับส่วนลงนามและบันทึกการรับเงิน</p></div></div><div class="application-grid two"><div class="guarantor-field"><span>ผู้ค้ำประกันคนที่ 1</span><div class="guarantor-input-row"><select name="applicationGuarantor1Prefix"><option>นาย</option><option>นาง</option><option>นางสาว</option></select><input name="applicationGuarantor1" type="text" placeholder="ระบุชื่อและนามสกุล"></div></div><div class="guarantor-field"><span>ผู้ค้ำประกันคนที่ 2</span><div class="guarantor-input-row"><select name="applicationGuarantor2Prefix"><option>นาย</option><option>นาง</option><option>นางสาว</option></select><input name="applicationGuarantor2" type="text" placeholder="ระบุชื่อและนามสกุล"></div></div><label>วันที่รับเงิน<input name="applicationReceiveDate" type="text" placeholder="วัน/เดือน/ปี"></label><label>วันครบกำหนดชำระงวดสุดท้าย<input name="applicationFinalDueDate" type="text" placeholder="วัน/เดือน/ปี"></label></div><label class="application-note">หมายเหตุเพิ่มเติม<textarea name="applicationNote" rows="3"></textarea></label></section>
+  <section class="application-card"><div class="application-heading"><span class="step-number">03</span><div><h2>รายละเอียดการกู้</h2><p>ค่าจากผลการประเมินสิทธิกู้จะถูกส่งมายังส่วนนี้</p></div></div><div class="application-grid two"><label>จำนวนเงินที่ขอกู้ (บาท)<input id="applicationAmount" name="applicationAmount" type="number" min="0" step="100"></label><label>จำนวนเงินเป็นตัวอักษร (ระบบคำนวณให้)<input id="applicationAmountText" name="applicationAmountText" type="text"></label></div><fieldset><legend>วัตถุประสงค์ของการกู้</legend><p class="rule-hint" id="applicationRuleHint">เลือกวัตถุประสงค์เพื่อให้ระบบเลือกเอกสารแนบเบื้องต้น</p><div class="purpose-grid"><label><input name="applicationPurpose" value="education" type="radio"> เพื่อการศึกษา อบรม หรือเสนอผลงานวิจัย</label><label><input name="applicationPurpose" value="childTuition" type="radio"> เพื่อค่าเล่าเรียนบุตร</label><label><input name="applicationPurpose" value="housing" type="radio"> เพื่อปรับปรุงที่อยู่อาศัย</label><label><input name="applicationPurpose" value="equipment" type="radio"> เพื่อจัดหาเครื่องมือทางวิชาการ</label><label><input name="applicationPurpose" value="emergency" type="radio"> เพื่อฉุกเฉิน</label></div></fieldset><div class="application-grid two"><label>ระยะเวลาผ่อนชำระ (เดือน)<input id="applicationMonths" name="applicationMonths" type="number" min="1"></label><label>ค่างวดที่ต้องการผ่อนชำระต่อเดือน (บาท)<input id="applicationMonthlyPayment" name="applicationMonthlyPayment" type="number" min="0" step="100"></label></div></section>
+  <section class="application-card"><div class="application-heading"><span class="step-number">04</span><div><h2>เอกสารแนบ</h2><p>ระบบเลือกเอกสารแนบเบื้องต้นตามวัตถุประสงค์ โปรดตรวจสอบความครบถ้วนก่อนส่งออก</p></div></div><div class="attachment-grid"><label class="attachment-item"><input data-application-attachment="1.1" type="checkbox"><span><b>1.1</b> สลิปเงินเดือน (เดือนล่าสุด)</span></label><label class="attachment-item"><input data-application-attachment="1.2" type="checkbox"><span><b>1.2</b> หลักฐานการลงทะเบียน / ใบเสร็จค่าลงทะเบียน</span></label><label class="attachment-item"><input data-application-attachment="1.3" type="checkbox"><span><b>1.3</b> ใบเสร็จค่าลงทะเบียน</span></label><label class="attachment-item"><input data-application-attachment="1.4" type="checkbox"><span><b>1.4</b> ใบเสนอราคาหรือใบเสร็จกำกับภาษีจัดซื้ออุปกรณ์ฯ</span></label><label class="attachment-item"><input data-application-attachment="1.5" type="checkbox"><span><b>1.5</b> ใบเสนอราคาหรือใบเสร็จกำกับภาษีค่าจ้างต่อเติม</span></label><label class="attachment-item"><input data-application-attachment="1.6" type="checkbox"><span><b>1.6</b> ใบสูติบัตรของบุตร</span></label><label class="attachment-item"><input data-application-attachment="1.7" type="checkbox"><span><b>1.7</b> หนังสือรับรองอายุงาน</span></label></div></section>
+  <section class="application-card"><div class="application-heading"><span class="step-number">05</span><div><h2>ผู้ค้ำประกันและข้อมูลการรับเงิน</h2><p>กรอกข้อมูลผู้ค้ำประกันสำหรับการลงนาม</p></div></div><div class="application-grid two"><div class="guarantor-field"><span>ผู้ค้ำประกันคนที่ 1</span><div class="guarantor-input-row"><select name="applicationGuarantor1Prefix"><option>นาย</option><option>นาง</option><option>นางสาว</option></select><input name="applicationGuarantor1" type="text" placeholder="ระบุชื่อและนามสกุล"></div></div><div class="guarantor-field"><span>ผู้ค้ำประกันคนที่ 2</span><div class="guarantor-input-row"><select name="applicationGuarantor2Prefix"><option>นาย</option><option>นาง</option><option>นางสาว</option></select><input name="applicationGuarantor2" type="text" placeholder="ระบุชื่อและนามสกุล"></div></div><label>วันที่รับเงิน (บันทึกหลังอนุมัติ)<input name="applicationReceiveDate" type="text" placeholder="วัน/เดือน/ปี"></label><label>วันครบกำหนดชำระงวดสุดท้าย (บันทึกหลังอนุมัติ)<input name="applicationFinalDueDate" type="text" placeholder="วัน/เดือน/ปี"></label></div><label class="application-note">หมายเหตุเพิ่มเติม (บันทึกภายใน ไม่ส่งออก PDF)<textarea name="applicationNote" rows="3"></textarea></label><p class="application-export-note">วันที่รับเงินและวันครบกำหนดชำระงวดสุดท้ายเป็นข้อมูลสำหรับบันทึกภายหลัง และไม่แสดงใน PDF เนื่องจากแม่แบบไม่มีช่องรองรับ</p></section>
   <div class="application-actions"><button class="ghost-button" type="button" id="applicationClearButton">ล้างข้อมูลแบบคำขอ</button><button class="primary-button" type="button" id="applicationPdfButton">ส่งออกแบบคำขอเป็น PDF</button></div>
 </section></main>
 
     <footer class="app-footer">
       <span>สำนักดิจิทัลเทคโนโลยี มหาวิทยาลัยศิลปากร</span>
-      <span>ระบบประเมินสิทธิเงินกู้สวัสดิการ เวอร์ชัน 1.0</span>
+      <span>ระบบประเมินสิทธิกู้สวัสดิการทางวิชาการ เวอร์ชัน 1.0</span>
       <a href="https://sittarachu.notion.site/6b92857874074207a41db8a748148971?pvs=105" target="_blank" rel="noopener noreferrer">แจ้งปัญหาและข้อเสนอแนะ</a>
     </footer>
 
@@ -303,10 +303,10 @@
   <div class="print-topline"><span>ที่ <b data-print="docNo"></b></span><span>เขียนที่ <b data-print="writtenAt"></b></span><span>วันที่ <b data-print="requestDate"></b></span></div>
   <p class="print-to">เรียน ประธานคณะกรรมการบริหารเงินสวัสดิการทางวิชาการ</p>
   <p class="print-paragraph">ข้าพเจ้า <b data-print="borrower"></b> ตำแหน่ง <b data-print="position"></b><br>สังกัด <b data-print="department"></b> ประสงค์ขอยืมเงินสวัสดิการทางวิชาการ<br>จำนวน <b data-print="amount"></b> บาท (<b data-print="amountText"></b>) เพื่อนำไปดำเนินการตามวัตถุประสงค์ คือ</p>
-  <div class="print-purpose"><span data-print-purpose="education">□ เพื่อการศึกษา อบรม หรือเสนอผลงานวิจัย</span><span data-print-purpose="housing">□ เพื่อปรับปรุงที่อยู่อาศัย</span><span data-print-purpose="equipment">□ เพื่อจัดหาเครื่องมือทางวิชาการ</span><span data-print-purpose="emergency">□ เพื่อฉุกเฉิน</span><span data-print-purpose="retirement">□ เพื่อสมนาคุณการเกษียณงานหรือลาออกจากงาน</span></div>
+  <div class="print-purpose"><span data-print-purpose="education">□ เพื่อการศึกษา อบรม หรือเสนอผลงานวิจัย</span><span data-print-purpose="childTuition">□ เพื่อค่าเล่าเรียนบุตร</span><span data-print-purpose="housing">□ เพื่อปรับปรุงที่อยู่อาศัย</span><span data-print-purpose="equipment">□ เพื่อจัดหาเครื่องมือทางวิชาการ</span><span data-print-purpose="emergency">□ เพื่อฉุกเฉิน</span></div>
   <p class="print-paragraph">โดยจะผ่อนชำระเงินกู้จำนวน <b data-print="months"></b> เดือน เป็นเงินเดือนละ <b data-print="monthly"></b> บาท</p>
-  <div class="print-signatures"><div class="print-signature"><span>ลงชื่อ ........................................................ ผู้กู้/ผู้ยื่น</span><span>(<b data-print="borrower"></b>)</span><small>ตัวบรรจง</small></div><div class="print-signature"><span>ลงชื่อ ........................................................ ผู้ค้ำ</span><span>(<b data-print="guarantor1"></b>)</span><small>ตัวบรรจง</small></div><div class="print-signature"><span>ลงชื่อ ........................................................ ผู้ค้ำ</span><span>(<b data-print="guarantor2"></b>)</span><small>ตัวบรรจง</small></div></div>
-  <p class="print-note">หมายเหตุ ผู้ค้ำยินดีรับผิดชอบชำระหนี้แทนหากผู้กู้ไม่สามารถชำระหนี้ในแต่ละเดือน ผู้ค้ำรับทราบและยินดีจึงลงลายมือชื่อไว้เป็นหลักฐาน</p>
+  <div class="print-signatures"><div class="print-signature"><span>ลงชื่อ ........................................................ ผู้กู้/ผู้ยื่นคำขอ</span><span>(<b data-print="borrower"></b>)</span><small>ตัวบรรจง</small></div><div class="print-signature"><span>ลงชื่อ ........................................................ ผู้ค้ำประกัน</span><span>(<b data-print="guarantor1"></b>)</span><small>ตัวบรรจง</small></div><div class="print-signature"><span>ลงชื่อ ........................................................ ผู้ค้ำประกัน</span><span>(<b data-print="guarantor2"></b>)</span><small>ตัวบรรจง</small></div></div>
+  <p class="print-note">หมายเหตุ ผู้ค้ำประกันยินดีรับผิดชอบชำระหนี้แทนหากผู้กู้ไม่สามารถชำระหนี้ในแต่ละเดือน ผู้ค้ำประกันรับทราบและยินดีจึงลงลายมือชื่อไว้เป็นหลักฐาน</p>
   <div class="print-receipt"><h2>แบบคำขอกู้ยืมเงินสวัสดิการทางวิชาการ</h2><p>สำนักดิจิทัลเทคโนโลยี</p><p>ข้าพเจ้า <b data-print="borrower"></b> ได้รับเงินกู้ จำนวน <b data-print="amount"></b> บาท (<b data-print="amountText"></b>) ไปเป็นการถูกต้องแล้ว</p><p>ณ วันที่ <b data-print="receiveDate"></b> โดยจะชำระเงินกู้งวดสุดท้าย ภายในวันที่ <b data-print="finalDueDate"></b></p><div class="print-receipt-sign"><span>ลงชื่อ ........................................................ ผู้รับเงิน</span><span>ลงชื่อ ........................................................ เจ้าหน้าที่</span></div></div>
   <div class="print-approval">กรรมการลงนามอนุมัติ<br><br>....................................................................................................................</div>
 </section>
