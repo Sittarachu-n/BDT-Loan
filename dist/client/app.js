@@ -926,10 +926,54 @@ applicationPanel.querySelectorAll('input[name="applicationPurpose"]').forEach((r
 const syncBorrowerName = (value) => { document.querySelector("#borrowerName").value = value; document.querySelector("#applicationBorrowerName").value = value; };
 document.querySelector("#borrowerName")?.addEventListener("input", (event) => { document.querySelector("#applicationBorrowerName").value = event.target.value; });
 document.querySelector("#applicationBorrowerName")?.addEventListener("input", (event) => { document.querySelector("#borrowerName").value = event.target.value; });
+const thaiMonthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+const receiveDaySelect = document.querySelector("#applicationReceiveDay");
+const receiveMonthSelect = document.querySelector("#applicationReceiveMonth");
+const receiveYearSelect = document.querySelector("#applicationReceiveYear");
+const finalDueDateInput = document.querySelector("#applicationFinalDueDate");
+const thaiYearNow = new Date().getFullYear() + 543;
+const populateSelect = (select, options, selected) => {
+  if (!select) return;
+  select.innerHTML = options.map(({ value, label }) => `<option value="${value}">${label}</option>`).join("");
+  select.value = String(selected);
+};
+const refreshReceiveDays = () => {
+  if (!receiveDaySelect || !receiveMonthSelect || !receiveYearSelect) return;
+  const selectedDay = Number(receiveDaySelect.value) || 1;
+  const month = Number(receiveMonthSelect.value);
+  const year = Number(receiveYearSelect.value) - 543;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  populateSelect(receiveDaySelect, Array.from({ length: daysInMonth }, (_, index) => ({ value: index + 1, label: index + 1 })), Math.min(selectedDay, daysInMonth));
+};
+const getFinalDueDate = () => {
+  const months = Number(document.querySelector("#applicationMonths")?.value);
+  const month = Number(receiveMonthSelect?.value);
+  const year = Number(receiveYearSelect?.value) - 543;
+  if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || !months || months < 1) return null;
+  const date = new Date(year, month - 1 + months, 5);
+  return { month: date.getMonth() + 1, year: date.getFullYear() + 543, text: `5 ${thaiMonthNames[date.getMonth()]} ${date.getFullYear() + 543}` };
+};
+const updateFinalDueDate = () => {
+  const result = getFinalDueDate();
+  if (finalDueDateInput) finalDueDateInput.value = result?.text || "";
+  return result;
+};
+const resetReceiveDate = () => {
+  const today = new Date();
+  populateSelect(receiveMonthSelect, thaiMonthNames.map((label, index) => ({ value: index + 1, label })), today.getMonth() + 1);
+  populateSelect(receiveYearSelect, [{ value: thaiYearNow, label: thaiYearNow }, { value: thaiYearNow + 1, label: thaiYearNow + 1 }], thaiYearNow);
+  populateSelect(receiveDaySelect, [{ value: 1, label: 1 }], today.getDate());
+  refreshReceiveDays();
+  updateFinalDueDate();
+};
+resetReceiveDate();
+receiveMonthSelect?.addEventListener("change", () => { refreshReceiveDays(); updateFinalDueDate(); });
+receiveYearSelect?.addEventListener("change", () => { refreshReceiveDays(); updateFinalDueDate(); });
+document.querySelector("#applicationMonths")?.addEventListener("input", updateFinalDueDate);
 const syncCalculationToApplication = () => { if (!latestCalculation) calculate(); const active = latestCalculation?.evaluatedLoansActive || []; const amount = active.length ? latestCalculation.approvedTotal : latestCalculation?.rightEligible || 0; const payment = active.length ? latestCalculation.requestedPayment : principalOnlyPayment(amount, Number(fields.contractMonths.value)); document.querySelector("#applicationAmount").value = Math.max(0, Math.round(amount)); document.querySelector("#applicationAmountText").value = thaiAmountText(amount); document.querySelector("#applicationMonths").value = fields.contractMonths.value; document.querySelector("#applicationMonthlyPayment").value = Math.max(0, Math.round(payment)); syncBorrowerPrefix(document.querySelector("#borrowerPrefix").value); syncBorrowerName(document.querySelector("#borrowerName").value); const type = active[0]?.type; const purpose = type === "1.3" ? "equipment" : type === "1.4" ? "housing" : type === "1.5" ? "emergency" : "education"; const radio = applicationPanel.querySelector(`input[name="applicationPurpose"][value="${purpose}"]`); if (radio) { radio.checked = true; updateApplicationAttachments(); if (type === "1.6") { ["1.1", "1.2", "1.6"].forEach((id) => { const box = applicationPanel.querySelector(`[data-application-attachment="${id}"]`); if (box) { box.checked = true; box.closest(".attachment-item").classList.add("required-attachment"); } }); applicationPanel.querySelector("#applicationRuleHint").textContent = "ระบบเลือกเอกสารเบื้องต้นสำหรับค่าเล่าเรียนบุตร: 1.1, 1.2 และ 1.6 โปรดตรวจสอบความครบถ้วนก่อนส่งออก"; } } showProductView("applicationPanel"); };
 document.querySelector("#useCalculationButton").addEventListener("click", syncCalculationToApplication);
 document.querySelector("#applicationAmount").addEventListener("input", (event) => { document.querySelector("#applicationAmountText").value = thaiAmountText(event.target.value); });
-document.querySelector("#applicationClearButton").addEventListener("click", () => { applicationPanel.querySelectorAll("input,textarea").forEach((input) => { if (input.type === "checkbox" || input.type === "radio") input.checked = false; else input.value = ""; }); applicationPanel.querySelectorAll("select").forEach((select) => { select.selectedIndex = 0; }); document.querySelector('input[name="applicationWrittenAt"]').value = "สำนักดิจิทัลเทคโนโลยี"; updateApplicationAttachments(); });
+document.querySelector("#applicationClearButton").addEventListener("click", () => { applicationPanel.querySelectorAll("input,textarea").forEach((input) => { if (input.type === "checkbox" || input.type === "radio") input.checked = false; else input.value = ""; }); applicationPanel.querySelectorAll("select").forEach((select) => { select.selectedIndex = 0; }); document.querySelector('input[name="applicationWrittenAt"]').value = "สำนักดิจิทัลเทคโนโลยี"; resetReceiveDate(); updateApplicationAttachments(); });
 
 
 
@@ -982,6 +1026,13 @@ const exportApplicationPdf = async () => {
     setPdfText(form, "จำนวนเงินเป็นตัวอักษร", applicationFieldValue("#applicationAmountText") || thaiAmountText(amount));
     setPdfText(form, "ระยะเวลาผ่อน (เดือน)", months);
     setPdfText(form, "ยอดผ่อนรายเดือน", monthlyPayment);
+    setPdfText(form, "วันที่รับเงิน", applicationFieldValue("#applicationReceiveDay"));
+    setPdfText(form, "เดือนที่รับเงิน", thaiMonthNames[Number(applicationFieldValue("#applicationReceiveMonth")) - 1] || "");
+    const finalDueDate = getFinalDueDate();
+    setPdfText(form, "เดือนที่ชําระเงินกู้งวดสุดท้าย", finalDueDate ? thaiMonthNames[finalDueDate.month - 1] : "");
+    const receiveYear = applicationFieldValue("#applicationReceiveYear");
+    setPdfText(form, "ปี พ.ศ. ที่รับเงิน", receiveYear);
+    setPdfText(form, "ปี พ.ศ. ที่ชําระเงินกู้งวดสุดท้าย", finalDueDate?.year || "");
     setPdfText(form, "ผู้ค้ำ ที่1", fullApplicationName('select[name="applicationGuarantor1Prefix"]', 'input[name="applicationGuarantor1"]'));
     setPdfText(form, "ผู้ค้ำ ที่2", fullApplicationName('select[name="applicationGuarantor2Prefix"]', 'input[name="applicationGuarantor2"]'));
     setPdfText(form, "ข้าพเจ้า", borrower);
