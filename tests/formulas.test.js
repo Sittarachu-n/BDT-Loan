@@ -71,6 +71,11 @@ assert.equal(resolveDesiredMonthlyPayment(3333, 1000, true), 1000);
 assert.equal(maxTermForLoan("1.2", 30000), 24);
 assert.equal(maxTermForLoan("1.2", 30001), 36);
 assert.equal(maxTermForLoan("1.5", 10000), 5);
+assert.equal(maxTermForLoan("1.2", 0), 24);
+assert.equal(principalOnlyPayment(30000, 24), 1250);
+assert.equal(principalOnlyPayment(48000, 36), 1334);
+assert.equal(preliminaryEligibleAmount(2000, 24, 40000, 50000), 40000);
+assert.equal(preliminaryEligibleAmount(2000, 24, 80000, 10000), 10000);
 
 assert.deepEqual(salaryEstimateForType("1.5", 3333, 24), {
   termValid: false,
@@ -88,6 +93,12 @@ assert.deepEqual(salaryEstimateForType("1.3", 1000, 24, { "1.3": 30000 }), {
   termValid: true,
   eligible: 20000,
   payment: 834,
+});
+
+assert.deepEqual(salaryEstimateForType("1.5", 2000, 5), {
+  termValid: true,
+  eligible: 10000,
+  payment: 2000,
 });
 
 console.log("Formula tests passed");

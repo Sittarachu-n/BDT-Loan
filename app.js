@@ -81,6 +81,8 @@ const output = {
 
 let latestCalculation = null;
 let delayedCalculateTimer = null;
+let currentDebtMode = "manual";
+let savedManualMonthlyPayment = 0;
 
 function formatBaht(value) {
   return `${Math.max(0, Math.floor(value)).toLocaleString("th-TH")} บาท`;
@@ -214,6 +216,10 @@ function setSummaryState(state) {
   output.summaryPanel.classList.toggle("is-incomplete", state === "incomplete");
 }
 
+function monthOptions(selectedMonth) {
+  return Array.from({ length: 36 }, (_, index) => index + 1).map((month) => `<option value="${month}" ${month === Number(selectedMonth) ? "selected" : ""}>${month} เดือน</option>`).join("");
+}
+
 function renderSummaryMeta(items) {
   if (!output.summaryMeta) return;
   output.summaryMeta.replaceChildren(
@@ -232,7 +238,7 @@ function formatThaiDateTime(date = new Date()) {
 }
 
 function renderDynamicTables() {
-  output.salaryLoanTable.innerHTML = Object.entries(loanTypes)
+  if (output.salaryLoanTable) output.salaryLoanTable.innerHTML = Object.entries(loanTypes)
     .map(
       ([typeKey, loanType]) => `<tr data-salary-type="${typeKey}">
         <td><strong>${typeKey}</strong><span>${loanType.label.replace(`${typeKey} `, "")}</span></td>
@@ -240,18 +246,27 @@ function renderDynamicTables() {
         <td data-salary-term="${typeKey}">0 เดือน</td>
         <td><span class="term-status" data-salary-status="${typeKey}">-</span></td>
         <td data-salary-payment="${typeKey}">0 บาท</td>
-        <td><input class="table-input salary-current-loan-amount" data-loan-type="${typeKey}" type="text" inputmode="numeric" pattern="[0-9,]*" value="0" /></td>
+        <td><strong data-salary-current="${typeKey}">0 บาท</strong></td>
         <td><strong data-salary-eligible="${typeKey}">0 บาท</strong><span class="term-status ok" data-salary-best="${typeKey}" hidden>สูงสุด</span></td>
       </tr>`
     )
     .join("");
 
+  document.querySelector("#currentContractTable").innerHTML = [0,1,2].map((index) => `<tr data-current-contract-row="${index}">
+    <td><strong>${index + 1}</strong></td>
+    <td><select class="table-select current-contract-type" data-current-index="${index}" aria-label="ประเภทเงินกู้ปัจจุบันสัญญาที่ ${index + 1}">${loanOptions("")}</select></td>
+    <td><input class="table-input current-contract-amount" data-current-index="${index}" type="text" inputmode="numeric" pattern="[0-9,]*" value="0" aria-label="ยอดเงินกู้ปัจจุบันสัญญาที่ ${index + 1}" /></td>
+    <td><input class="table-input current-contract-payment" data-current-index="${index}" type="text" inputmode="numeric" pattern="[0-9,]*" value="0" aria-label="ภาระผ่อนปัจจุบันสัญญาที่ ${index + 1}" /></td>
+    <td><span class="term-status empty" data-current-status="${index}">ยังไม่ระบุ</span></td>
+  </tr>`).join("");
+
   fields.requestedLoanTable.innerHTML = [0,1]
     .map(
       (index) => `<tr>
         <td><strong>${index + 1}</strong></td>
-        <td><select class="table-select requested-loan-type" data-request-index="${index}">${loanOptions("")}</select></td>
-        <td><input class="table-input requested-loan-amount" data-request-index="${index}" type="number" min="0" step="100" value="0" /></td>
+        <td><select class="table-select requested-loan-type" data-request-index="${index}" aria-label="ประเภทเงินกู้สัญญาที่ ${index + 1}">${loanOptions("")}</select></td>
+        <td><input class="table-input requested-loan-amount" data-request-index="${index}" type="text" inputmode="numeric" pattern="[0-9,]*" value="0" aria-label="ยอดเงินกู้ที่ต้องการสัญญาที่ ${index + 1}" /></td>
+        <td><select class="table-select requested-loan-months" data-request-index="${index}" aria-label="ระยะเวลาผ่อนชำระสัญญาที่ ${index + 1}">${monthOptions(fields.contractMonths.value)}</select></td>
         <td><strong data-request-payment="${index}">0 บาท</strong></td>
         <td><span class="term-status empty" data-request-result="${index}">-</span></td>
       </tr>`
@@ -261,19 +276,39 @@ function renderDynamicTables() {
 
 function getCurrentLoans() {
   const current = Object.fromEntries(Object.keys(loanTypes).map((typeKey) => [typeKey, 0]));
-
-  document.querySelectorAll(".salary-current-loan-amount").forEach((input) => {
-    current[input.dataset.loanType] = numberValue(input);
-  });
-
+  getCurrentContracts().forEach((contract) => { if (loanTypes[contract.type]) current[contract.type] += contract.amount; });
   return current;
+}
+
+function getCurrentContracts() {
+  return [0,1,2].map((index) => ({ index, type: document.querySelector(`.current-contract-type[data-current-index="${index}"]`)?.value || "", amount: numberValue(document.querySelector(`.current-contract-amount[data-current-index="${index}"]`)), payment: numberValue(document.querySelector(`.current-contract-payment[data-current-index="${index}"]`)) }));
+}
+
+function updateCurrentContractSection() {
+  const contracts = getCurrentContracts();
+  const active = contracts.filter((contract) => contract.type || contract.amount > 0 || contract.payment > 0);
+  const complete = active.filter((contract) => contract.type && contract.amount > 0 && contract.payment > 0);
+  const totalAmount = complete.reduce((sum, contract) => sum + contract.amount, 0);
+  const totalPayment = complete.reduce((sum, contract) => sum + contract.payment, 0);
+  setText(document.querySelector("#currentContractCount"), `${complete.length} จาก 3 สัญญา`);
+  setText(document.querySelector("#currentContractAmountTotal"), formatBaht(totalAmount));
+  setText(document.querySelector("#currentContractPaymentTotal"), `${formatBaht(totalPayment)}/เดือน`);
+  contracts.forEach((contract) => { const status = document.querySelector(`[data-current-status="${contract.index}"]`); if (!status) return; const empty = !contract.type && contract.amount === 0 && contract.payment === 0; const valid = Boolean(contract.type && contract.amount > 0 && contract.payment > 0); status.className = `term-status ${empty ? "empty" : valid ? "ok" : "bad"}`; status.textContent = empty ? "ยังไม่ระบุ" : valid ? "กรอกครบแล้ว" : "กรุณากรอกให้ครบ"; });
+  const conflict = document.querySelector("#currentDebtConflict");
+  if (active.length === 0) { conflict.hidden = true; if (currentDebtMode === "contracts") { currentDebtMode = "manual"; fields.currentMonthlyPayment.readOnly = false; fields.currentMonthlyPayment.value = savedManualMonthlyPayment; } }
+  else if (currentDebtMode === "manual" && numberValue(fields.currentMonthlyPayment) > 0) { conflict.hidden = false; setText(document.querySelector("#currentDebtConflictText"), `ช่องภาระผ่อนปัจจุบันมีค่า ${formatBaht(numberValue(fields.currentMonthlyPayment))} ขณะที่ผลรวมจากสัญญาที่กรอกครบคือ ${formatBaht(totalPayment)} กรุณาเลือกแหล่งข้อมูลเพื่อป้องกันการนับซ้ำ`); }
+  else { conflict.hidden = true; currentDebtMode = "contracts"; fields.currentMonthlyPayment.readOnly = true; fields.currentMonthlyPayment.value = totalPayment; }
+  const usingContracts = currentDebtMode === "contracts";
+  setText(document.querySelector("#currentContractSource"), usingContracts ? `กำลังใช้ผลรวมจากสัญญาปัจจุบัน ${complete.length} สัญญา เป็นภาระผ่อนปัจจุบันต่อเดือน` : "ขณะนี้ใช้ค่าจากช่อง “ภาระผ่อนปัจจุบันต่อเดือน”");
+  return { contracts, complete, totalAmount, totalPayment };
 }
 
 function getRequestedLoans() {
   return [0,1].map((index) => {
     const type = document.querySelector(`.requested-loan-type[data-request-index="${index}"]`).value;
     const amount = numberValue(document.querySelector(`.requested-loan-amount[data-request-index="${index}"]`));
-    return { index, type, amount };
+    const term = numberValue(document.querySelector(`.requested-loan-months[data-request-index="${index}"]`));
+    return { index, type, amount, term };
   });
 }
 
@@ -323,7 +358,7 @@ function evaluateRequestedLoansSequentially(requestedLoans, maxPaymentBudget, cu
       };
     }
 
-    const term = termForLoan(months);
+    const term = termForLoan(loan.term || months);
     const termValid = term <= maxTermForLoan(loan.type, loan.amount);
     const paymentCapacity = termValid ? principalOnlyCapacity(paymentLeft, term) : 0;
     const possibleAmount = Math.floor(Math.max(0, Math.min(typeLeft[loan.type] || 0, employeeLeft, paymentCapacity)));
@@ -371,8 +406,8 @@ function buildAmortizationRows(loan) {
     rows += `<tr>
       <td>${period.toLocaleString("th-TH")}</td>
       <td>${formatBaht(openingBalance)}</td>
-      <td>${formatBaht(interest)}</td>
       <td>${formatBaht(principalPaid)}</td>
+      <td>${formatBaht(interest)}</td>
       <td>${formatBaht(payment)}</td>
     </tr>`;
   }
@@ -384,19 +419,21 @@ function buildReportViewModel(data) {
   const evaluatedLoansWithAmount = data.evaluatedLoans.filter((loan) => loan.amount > 0);
   const amortizationLoans = data.evaluatedLoans.filter((loan) => loan.approvedAmount > 0 && loanTypes[loan.type]);
   const totalEvaluationPayment = evaluatedLoansWithAmount.reduce((sum, loan) => sum + loan.approvedPayment, 0);
-  const currentLoanRows = Object.entries(data.currentLoans)
-    .filter(([, amount]) => amount > 0)
-    .map(([typeKey, amount]) => ({ typeKey, loanType: loanTypes[typeKey], amount }));
+  const termSummary = evaluatedLoansWithAmount.map((loan) => `สัญญา ${loan.index + 1}: ${loan.term} เดือน`).join(" | ") || `${data.months} เดือน`;
+  const currentContractRows = data.currentContracts
+    .filter((contract) => contract.type && contract.amount > 0 && contract.payment > 0)
+    .map((contract) => ({ ...contract, loanType: loanTypes[contract.type] }));
 
   return {
     data,
     amortizationLoans,
     borrowerName: [document.querySelector("#borrowerPrefix")?.value, fields.borrowerName?.value.trim()].filter(Boolean).join(" ") || "-",
-    currentLoanRows,
+    currentContractRows,
     evaluatedLoansWithAmount,
     printedAt: formatThaiDateTime(),
     reportStatus: data.statusMessage,
     totalEvaluationPayment,
+    termSummary,
   };
 }
 
@@ -407,6 +444,7 @@ function readFormState() {
   const currentMonthlyPayment = numberValue(fields.currentMonthlyPayment);
   const months = numberValue(fields.contractMonths);
   const currentLoans = getCurrentLoans();
+  const currentContracts = getCurrentContracts();
   const currentDebtTotal = Object.values(currentLoans).reduce((sum, value) => sum + value, 0);
 
   return {
@@ -416,6 +454,7 @@ function readFormState() {
     currentMonthlyPayment,
     months,
     currentLoans,
+    currentContracts,
     currentDebtTotal,
   };
 }
@@ -428,13 +467,15 @@ function calculate() {
     currentMonthlyPayment,
     months,
     currentLoans,
+    currentContracts,
     currentDebtTotal,
   } = readFormState();
   const hasCurrentMonthlyPayment = currentMonthlyPayment > 0;
   const hasCurrentLoanDebt = currentDebtTotal > 0;
   const debtPaymentMismatchMessages = [];
+  const incompleteCurrentContracts = currentContracts.filter((contract) => (contract.type || contract.amount > 0 || contract.payment > 0) && !(contract.type && contract.amount > 0 && contract.payment > 0));
   if (hasCurrentMonthlyPayment && !hasCurrentLoanDebt) {
-    debtPaymentMismatchMessages.push("มีภาระผ่อนปัจจุบันต่อเดือน กรุณากรอกยอดเงินกู้ปัจจุบันในตารางส่วนที่ 1");
+    debtPaymentMismatchMessages.push("มีภาระผ่อนปัจจุบันต่อเดือน กรุณากรอกข้อมูลสัญญาเงินกู้ปัจจุบัน หรือยืนยันว่าจะใช้ยอดที่กรอกเอง");
   }
   if (hasCurrentLoanDebt && !hasCurrentMonthlyPayment) {
     debtPaymentMismatchMessages.push("มียอดเงินกู้ปัจจุบัน กรุณากรอกภาระผ่อนปัจจุบันต่อเดือน");
@@ -482,6 +523,8 @@ function calculate() {
   const remainingAfterAllPayments = salaryRemaining - totalPaymentAfter;
   const requiredReserve = requestedPayment * 3;
   const checks = [];
+
+  incompleteCurrentContracts.forEach((contract) => addCheck(checks, "fail", `ข้อมูลสัญญาเงินกู้ปัจจุบัน ${contract.index + 1}`, "กรุณาเลือกประเภทเงินกู้ และกรอกยอดเงินกู้ปัจจุบันกับภาระผ่อนปัจจุบันให้ครบ"));
 
   evaluatedLoans.forEach((loan) => {
     const paymentCell = document.querySelector(`[data-request-payment="${loan.index}"]`);
@@ -568,7 +611,7 @@ function calculate() {
       checks,
       "warn",
       "ข้อควรตรวจสอบสำหรับพนักงานชั่วคราว",
-      "ตาม Markdown ลูกจ้าง/พนักงานชั่วคราวต้องผ่อนชำระภายในระยะเวลาที่เหลือของสัญญาจ้างด้วย"
+      "ตามประกาศข้อ 2.4.4 พนักงานมหาวิทยาลัยประเภทพนักงานชั่วคราว มีวงเงินรวมไม่เกินเงินงวดที่ผ่อนส่งแต่ละเดือนคูณกับจำนวนเดือนที่เหลือของสัญญาจ้าง และไม่เกิน 40,000 บาท"
     );
   }
   addCheck(
@@ -583,9 +626,10 @@ function calculate() {
   const missingSalary = salaryRemaining <= 0;
   const missingLoanType = evaluatedLoansActive.some((loan) => loan.missingType);
   const hasCompleteRequest = evaluatedLoansActive.length > 0 && !missingLoanType;
-  const incomplete = missingSalary || requestedTotal === 0 || missingLoanType;
+  const incomplete = missingSalary || requestedTotal === 0 || missingLoanType || incompleteCurrentContracts.length > 0;
   const alertMessages = [];
   if (missingSalary) alertMessages.push("กรุณากรอกยอดเงินเดือนคงเหลือเพื่อประเมินสิทธิกู้");
+  if (incompleteCurrentContracts.length) alertMessages.push("กรุณากรอกข้อมูลสัญญาเงินกู้ปัจจุบันให้ครบ");
   alertMessages.push(...debtPaymentMismatchMessages);
   const summaryState = incomplete ? "incomplete" : requestedOverEligible ? "partial" : failed ? "fail" : "pass";
   const statusMessage = missingSalary
@@ -622,6 +666,7 @@ function calculate() {
     currentMonthlyPayment,
     months,
     currentLoans,
+    currentContracts,
     currentDebtTotal,
     requestedTotal,
     salaryPaymentBase,
@@ -648,6 +693,14 @@ function calculate() {
     statusMessage,
   };
 
+  const firstContract = evaluatedLoans[0];
+  const useCalculationButton = document.querySelector("#useCalculationButton");
+  const canUseFirstContract = Boolean(firstContract?.amount > 0 && firstContract.passed);
+  if (useCalculationButton) {
+    useCalculationButton.disabled = !canUseFirstContract;
+    useCalculationButton.title = canUseFirstContract ? "ดึงข้อมูลสัญญาที่ 1 ไปยังแบบคำขอ" : "ต้องให้สัญญาที่ 1 ผ่านและกู้ได้เต็มยอดก่อน";
+  }
+
   setSummaryState(summaryState);
   setText(output.statusText, statusMessage);
   setText(output.approvedAmount, formatBaht(summaryAmount));
@@ -673,6 +726,7 @@ function calculate() {
     const termCell = document.querySelector(`[data-salary-term="${row.typeKey}"]`);
     const statusCell = document.querySelector(`[data-salary-status="${row.typeKey}"]`);
     const paymentCell = document.querySelector(`[data-salary-payment="${row.typeKey}"]`);
+    const currentCell = document.querySelector(`[data-salary-current="${row.typeKey}"]`);
     const eligibleCell = document.querySelector(`[data-salary-eligible="${row.typeKey}"]`);
     const bestBadge = document.querySelector(`[data-salary-best="${row.typeKey}"]`);
     const highlightClass = !row.termValid
@@ -690,6 +744,7 @@ function calculate() {
       statusCell.textContent = row.termValid ? "สอดคล้อง" : `เกิน ${row.maxTerm} เดือน`;
     }
     if (paymentCell) paymentCell.textContent = formatBaht(row.payment);
+    if (currentCell) currentCell.textContent = formatBaht(currentLoans[row.typeKey] || 0);
     if (eligibleCell) eligibleCell.textContent = formatBaht(row.eligible);
     if (bestBadge) bestBadge.hidden = !(bestSalaryEligible > 0 && row.eligible === bestSalaryEligible);
   });
@@ -712,11 +767,13 @@ function buildReportSummary(options = {}) {
   const { data } = report;
   const printedAt = report.printedAt;
   const borrowerName = report.borrowerName;
-  const currentLoanRows = report.currentLoanRows
-    .map(({ typeKey, loanType, amount }) => `<tr>
-      <td><strong>${typeKey}</strong></td>
+  const currentContractRows = report.currentContractRows
+    .map(({ index, type, loanType, amount, payment }) => `<tr>
+      <td><strong>สัญญาที่ ${index + 1}</strong></td>
+      <td><strong>${type}</strong></td>
       <td>${escapeHtml(loanType.label)}</td>
       <td>${formatBaht(amount)}</td>
+      <td>${formatBaht(payment)}</td>
     </tr>`)
     .join("");
   const totalEvaluationPayment = report.totalEvaluationPayment;
@@ -728,6 +785,7 @@ function buildReportSummary(options = {}) {
         <td><strong>สัญญาที่ ${loan.index + 1}</strong></td>
         <td>${loanType ? escapeHtml(loanType.label) : "ยังไม่เลือกประเภทเงินกู้"}</td>
         <td>${formatBaht(loan.amount)}</td>
+        <td>${loan.term.toLocaleString("th-TH")} เดือน</td>
         <td>${formatBaht(loan.approvedAmount)}</td>
         <td>${formatBaht(loan.approvedPayment)}</td>
         <td><span class="term-status ${requestResultClass(loan)}">${escapeHtml(requestResultText(loan))}</span></td>
@@ -750,8 +808,8 @@ function buildReportSummary(options = {}) {
               <tr>
                 <th>งวดที่</th>
                 <th>เงินต้นคงเหลือก่อนชำระ</th>
-                <th>ดอกเบี้ย</th>
                 <th>เงินต้นที่ผ่อน</th>
+                <th>ดอกเบี้ย</th>
                 <th>ยอดผ่อนรวมต่อเดือน</th>
               </tr>
             </thead>
@@ -784,28 +842,30 @@ function buildReportSummary(options = {}) {
       <div class="metric-grid repayment-grid report-metrics">
         <div class="metric"><span>ประเภทบุคลากร</span><strong>${escapeHtml(data.employee.label)}</strong></div>
         <div class="metric strong-metric"><span>สิทธิคงเหลือหลังหักยอดเงินกู้ที่ต้องการ</span><strong>${formatBaht(data.personnelRemainingAfterRequested)}</strong></div>
-        <div class="metric"><span>ยอดเงินกู้ที่ต้องการ</span><strong>${formatBaht(data.requestedTotal)}</strong></div>
         <div class="metric"><span>ยอดเงินเดือนคงเหลือ</span><strong>${formatBaht(data.salaryRemaining)}</strong></div>
         <div class="metric"><span>ยอดผ่อนสูงสุดต่อเดือน</span><strong>${formatBaht(data.maxNewPayment)}</strong></div>
-        <div class="metric"><span>ระยะเวลาผ่อนชำระ</span><strong>${data.months.toLocaleString("th-TH")} เดือน</strong></div>
+        <div class="metric"><span>ยอดเงินกู้ที่ต้องการ</span><strong>${formatBaht(data.requestedTotal)}</strong></div>
+        <div class="metric"><span>ระยะเวลาผ่อนชำระ</span><strong>${escapeHtml(report.termSummary)}</strong></div>
         <div class="metric"><span>รวมค่างวดที่ใช้ประเมิน</span><strong>${formatBaht(totalEvaluationPayment)}</strong></div>
       </div>
 
       <div class="current-loan-summary report-card">
         <div class="table-head">
-          <h3>ยอดเงินกู้ปัจจุบัน</h3>
-          <span>ข้อมูลจากตารางวงเงินกู้สูงสุดตามประเภทเงินกู้</span>
+          <h3>สัญญาเงินกู้ปัจจุบัน</h3>
+          <span>แสดงยอดเงินกู้ปัจจุบันและภาระผ่อนปัจจุบันของแต่ละสัญญา</span>
         </div>
         <div class="loan-table-wrap">
           <table class="loan-table compact-table current-loan-summary-table">
             <thead>
               <tr>
-                <th>ประเภทเงินกู้</th>
+                <th>สัญญา</th>
+                <th>ประเภท</th>
                 <th>รายละเอียด</th>
                 <th>ยอดเงินกู้ปัจจุบัน</th>
+                <th>ภาระผ่อนปัจจุบัน</th>
               </tr>
             </thead>
-            <tbody>${currentLoanRows || `<tr><td colspan="3">ยังไม่ได้กรอกยอดเงินกู้ปัจจุบัน</td></tr>`}</tbody>
+            <tbody>${currentContractRows || `<tr><td colspan="5">ยังไม่ได้กรอกสัญญาเงินกู้ปัจจุบัน</td></tr>`}</tbody>
           </table>
         </div>
       </div>
@@ -822,12 +882,13 @@ function buildReportSummary(options = {}) {
                 <th>สัญญา</th>
                 <th>ประเภทเงินกู้</th>
                 <th>ยอดเงินกู้ที่ต้องการ</th>
+                <th>ระยะเวลาผ่อนชำระ</th>
                 <th>ยอดที่กู้ได้</th>
                 <th>ค่างวดที่ใช้ประเมิน</th>
                 <th>ผลการประเมิน</th>
               </tr>
             </thead>
-            <tbody>${requestedSummaryRows || `<tr><td colspan="6">ยังไม่ได้กรอกยอดเงินกู้ที่ต้องการ</td></tr>`}</tbody>
+            <tbody>${requestedSummaryRows || `<tr><td colspan="7">ยังไม่ได้กรอกยอดเงินกู้ที่ต้องการ</td></tr>`}</tbody>
           </table>
         </div>
       </div>
@@ -891,16 +952,20 @@ function resetForm() {
   fields.desiredMonthlyPayment.value = 0;
   fields.contractMonths.value = 24;
   if (fields.borrowerName) fields.borrowerName.value = "";
-  document.querySelectorAll(".salary-current-loan-amount").forEach((input) => {
-    input.value = 0;
-  });
+  currentDebtMode = "manual";
+  savedManualMonthlyPayment = 0;
+  fields.currentMonthlyPayment.readOnly = false;
+  document.querySelectorAll(".current-contract-type").forEach((select) => { select.value = ""; });
+  document.querySelectorAll(".current-contract-amount,.current-contract-payment").forEach((input) => { input.value = 0; });
   document.querySelectorAll(".requested-loan-type").forEach((select, index) => {
     select.value = index === 0 ? "1.1" : "";
   });
   document.querySelectorAll(".requested-loan-amount").forEach((input) => {
     input.value = 0;
   });
+  document.querySelectorAll(".requested-loan-months").forEach((select) => { select.value = "24"; });
   syncContractMonths(fields.contractMonths);
+  updateCurrentContractSection();
   resetReportOutput();
   calculate();
 }
@@ -908,11 +973,21 @@ function resetForm() {
 renderDynamicTables();
 document.querySelector("#loanForm").addEventListener("input", (event) => {
   resetReportOutput();
+  if (event.target.matches(".current-contract-amount,.current-contract-payment")) {
+    event.target.value = formatLoanAmount(event.target.value) || "0";
+    updateCurrentContractSection();
+    scheduleCalculate();
+    return;
+  }
+  if (event.target.matches(".requested-loan-amount")) {
+    event.target.value = formatLoanAmount(event.target.value) || "0";
+  }
   if (event.target === fields.desiredMonthlyPayment) {
     scheduleCalculate();
     return;
   }
-  if (event.target.matches(".salary-current-loan-amount") || event.target === fields.salaryRemaining || event.target === fields.currentMonthlyPayment) {
+  if (event.target === fields.currentMonthlyPayment && currentDebtMode === "manual") savedManualMonthlyPayment = numberValue(fields.currentMonthlyPayment);
+  if (event.target === fields.salaryRemaining || event.target === fields.currentMonthlyPayment) {
     scheduleCalculate();
     return;
   }
@@ -921,24 +996,31 @@ document.querySelector("#loanForm").addEventListener("input", (event) => {
 document.querySelector("#loanForm").addEventListener("change", (event) => {
   window.clearTimeout(delayedCalculateTimer);
   resetReportOutput();
+  if (event.target.matches(".current-contract-type")) updateCurrentContractSection();
+  if (event.target.matches(".requested-loan-type") && event.target.value === "1.5") { const termSelect = document.querySelector(`.requested-loan-months[data-request-index="${event.target.dataset.requestIndex}"]`); if (Number(termSelect?.value) > 5) termSelect.value = "5"; }
   calculate();
 });
 document.querySelector("#loanForm").addEventListener("focusin", (event) => {
-  if ((event.target.matches(".salary-current-loan-amount") || event.target === fields.desiredMonthlyPayment) && event.target.value === "0") {
+  if ((event.target.matches(".current-contract-amount,.current-contract-payment") || event.target === fields.desiredMonthlyPayment) && event.target.value === "0") {
     event.target.select();
   }
 });
 fields.contractMonths?.addEventListener("input", () => {
   syncContractMonths(fields.contractMonths);
+  document.querySelectorAll(".requested-loan-months").forEach((select) => { select.value = fields.contractMonths.value; });
   resetReportOutput();
   calculate();
 });
 fields.salaryRemaining?.addEventListener("focusout", calculate);
 fields.currentMonthlyPayment?.addEventListener("focusout", calculate);
 document.querySelector("#resetButton").addEventListener("click", resetForm);
+document.querySelector("#useContractTotalsButton")?.addEventListener("click", () => { savedManualMonthlyPayment = numberValue(fields.currentMonthlyPayment); currentDebtMode = "contracts"; fields.currentMonthlyPayment.readOnly = true; updateCurrentContractSection(); calculate(); });
+document.querySelector("#cancelContractDetailsButton")?.addEventListener("click", () => { document.querySelectorAll(".current-contract-type").forEach((select) => { select.value = ""; }); document.querySelectorAll(".current-contract-amount,.current-contract-payment").forEach((input) => { input.value = 0; }); currentDebtMode = "manual"; fields.currentMonthlyPayment.readOnly = false; fields.currentMonthlyPayment.value = savedManualMonthlyPayment; updateCurrentContractSection(); calculate(); });
+document.querySelector("#clearCurrentContractsButton")?.addEventListener("click", () => document.querySelector("#cancelContractDetailsButton")?.click());
 output.buildReportButton?.addEventListener("click", () => buildReportSummary({ scroll: true }));
 output.pdfButton?.addEventListener("click", createPdfDocument);
 syncContractMonths(fields.contractMonths);
+updateCurrentContractSection();
 calculate();
 
 const applicationPurposeRules = {
@@ -1018,10 +1100,10 @@ resetReceiveDate();
 receiveMonthSelect?.addEventListener("change", () => { refreshReceiveDays(); updateFinalDueDate(); });
 receiveYearSelect?.addEventListener("change", () => { refreshReceiveDays(); updateFinalDueDate(); });
 document.querySelector("#applicationMonths")?.addEventListener("input", () => { updateApplicationMonthlyPayment(); updateFinalDueDate(); });
-const syncCalculationToApplication = () => { if (!latestCalculation) calculate(); const active = latestCalculation?.evaluatedLoansActive || []; const amount = active.length ? latestCalculation.approvedTotal : latestCalculation?.rightEligible || 0; const payment = active.length ? latestCalculation.requestedPayment : principalOnlyPayment(amount, Number(fields.contractMonths.value)); document.querySelector("#applicationAmount").value = formatLoanAmount(Math.max(0, Math.round(amount))); document.querySelector("#applicationAmountText").value = thaiAmountText(amount); document.querySelector("#applicationMonths").value = fields.contractMonths.value; document.querySelector("#applicationMonthlyPayment").value = Math.max(0, Math.round(payment)); updateFinalDueDate(); syncBorrowerPrefix(document.querySelector("#borrowerPrefix").value); syncBorrowerName(document.querySelector("#borrowerName").value); const type = active[0]?.type; const purpose = type === "1.3" ? "equipment" : type === "1.4" ? "housing" : type === "1.5" ? "emergency" : "education"; const radio = applicationPanel.querySelector(`input[name="applicationPurpose"][value="${purpose}"]`); if (radio) { radio.checked = true; updateApplicationAttachments(); if (type === "1.6") { ["1.1", "1.2", "1.6"].forEach((id) => { const box = applicationPanel.querySelector(`[data-application-attachment="${id}"]`); if (box) { box.checked = true; box.closest(".attachment-item").classList.add("required-attachment"); } }); applicationPanel.querySelector("#applicationRuleHint").textContent = "ระบบเลือกเอกสารเบื้องต้นสำหรับค่าเล่าเรียนบุตร: 1.1, 1.2 และ 1.6 โปรดตรวจสอบความครบถ้วนก่อนส่งออก"; } } showProductView("applicationPanel"); };
+const syncCalculationToApplication = () => { if (!latestCalculation) calculate(); const firstContract = latestCalculation?.evaluatedLoans?.[0]; if (!firstContract || firstContract.amount <= 0 || !firstContract.passed) { alert("กรุณาระบุสัญญาที่ 1 และประเมินให้ผ่านในสถานะ ‘กู้ได้เต็มยอด’ ก่อนดึงข้อมูลไปยังแบบคำขอ"); return; } const amount = firstContract.approvedAmount; const payment = firstContract.approvedPayment; document.querySelector("#applicationAmount").value = formatLoanAmount(Math.max(0, Math.round(amount))); document.querySelector("#applicationAmountText").value = thaiAmountText(amount); document.querySelector("#applicationMonths").value = firstContract.term; document.querySelector("#applicationMonthlyPayment").value = Math.max(0, Math.round(payment)); updateFinalDueDate(); syncBorrowerPrefix(document.querySelector("#borrowerPrefix").value); syncBorrowerName(document.querySelector("#borrowerName").value); const type = firstContract.type; const purpose = type === "1.3" ? "equipment" : type === "1.4" ? "housing" : type === "1.5" ? "emergency" : "education"; const radio = applicationPanel.querySelector(`input[name="applicationPurpose"][value="${purpose}"]`); if (radio) { radio.checked = true; updateApplicationAttachments(); if (type === "1.6") { ["1.1", "1.2", "1.6"].forEach((id) => { const box = applicationPanel.querySelector(`[data-application-attachment="${id}"]`); if (box) { box.checked = true; box.closest(".attachment-item").classList.add("required-attachment"); } }); applicationPanel.querySelector("#applicationRuleHint").textContent = "ระบบเลือกเอกสารเบื้องต้นสำหรับค่าเล่าเรียนบุตร: 1.1, 1.2 และ 1.6 โปรดตรวจสอบความครบถ้วนก่อนส่งออก"; } } showProductView("applicationPanel"); };
 document.querySelector("#useCalculationButton").addEventListener("click", syncCalculationToApplication);
 document.querySelector("#applicationAmount").addEventListener("input", (event) => { event.target.value = formatLoanAmount(event.target.value); document.querySelector("#applicationAmountText").value = thaiAmountText(event.target.value); updateApplicationMonthlyPayment(); });
-document.querySelector("#applicationClearButton").addEventListener("click", () => { applicationPanel.querySelectorAll("input,textarea").forEach((input) => { if (input.type === "checkbox" || input.type === "radio") input.checked = false; else input.value = ""; }); applicationPanel.querySelectorAll("select").forEach((select) => { select.selectedIndex = 0; }); document.querySelector('input[name="applicationWrittenAt"]').value = "สำนักดิจิทัลเทคโนโลยี"; resetReceiveDate(); updateApplicationAttachments(); });
+document.querySelector("#applicationClearButton").addEventListener("click", () => { applicationPanel.querySelectorAll("input,textarea").forEach((input) => { if (input.type === "checkbox" || input.type === "radio") input.checked = false; else input.value = ""; }); applicationPanel.querySelectorAll("select").forEach((select) => { select.selectedIndex = 0; }); document.querySelector('input[name="applicationWrittenAt"]').value = "สำนักดิจิทัลเทคโนโลยี"; resetReceiveDate(); updateApplicationAttachments(); clearApplicationValidation(); });
 
 
 
@@ -1031,6 +1113,101 @@ document.querySelector('select[name="applicationPrefix"]')?.addEventListener("ch
 
 const applicationFieldValue = (selector) => document.querySelector(selector)?.value?.trim() || "";
 const fullApplicationName = (prefixSelector, nameSelector) => [applicationFieldValue(prefixSelector), applicationFieldValue(nameSelector)].filter(Boolean).join(" ");
+const PDF_FIELD_MAP = Object.freeze({
+  writtenAt: "เขียนที่", applicationDate: "วันที่", borrower: "ผู้กู้", position: "ตําแหน่ง", department: "สังกัด",
+  amount: "จำนวนเงินที่ขอกู้", amountText: "จำนวนเงินเป็นตัวอักษร", months: "ระยะเวลาผ่อน (เดือน)", monthlyPayment: "ยอดผ่อนรายเดือน",
+  receiveDay: "วันที่รับเงิน", receiveMonth: "เดือนที่รับเงิน", finalMonth: "เดือนที่ชําระเงินกู้งวดสุดท้าย", receiveYear: "ปี พ.ศ. ที่รับเงิน",
+  finalYear: "ปี พ.ศ. ที่ชําระเงินกู้งวดสุดท้าย", guarantor1: "ผู้ค้ำ ที่1", guarantor2: "ผู้ค้ำ ที่2",
+});
+const PDF_CONTROL_FIELDS = Object.freeze(["loan_purpose", "attachment_1_1", "attachment_1_2", "attachment_1_3", "attachment_1_4", "attachment_1_5", "attachment_1_6", "attachment_1_7"]);
+const applicationRequirements = [
+  { selector: "#applicationBorrowerName", message: "กรุณาระบุชื่อและนามสกุล" },
+  { selector: '[name="applicationPosition"]', message: "กรุณาเลือกตำแหน่ง" },
+  { selector: '[name="applicationDepartment"]', message: "กรุณาเลือกสังกัด" },
+  { selector: "#applicationAmount", message: "กรุณาระบุจำนวนเงินที่ขอกู้", valid: () => loanAmountNumber(applicationFieldValue("#applicationAmount")) > 0 },
+  { selector: "#applicationAmountText", message: "กรุณาตรวจสอบจำนวนเงินเป็นตัวอักษร" },
+  { selector: '[name="applicationPurpose"]', group: "purpose", message: "กรุณาเลือกวัตถุประสงค์ของการกู้", valid: () => Boolean(applicationPanel.querySelector('[name="applicationPurpose"]:checked')) },
+  { selector: "#applicationMonths", message: "กรุณาระบุระยะเวลาผ่อนชำระ", valid: () => Number(applicationFieldValue("#applicationMonths")) > 0 },
+  { selector: "#applicationMonthlyPayment", message: "กรุณาระบุค่างวดที่ต้องการผ่อนชำระต่อเดือน", valid: () => Number(applicationFieldValue("#applicationMonthlyPayment")) > 0 },
+  { selector: "[data-application-attachment]", group: "attachments", message: "กรุณาเลือกเอกสารแนบอย่างน้อย 1 รายการ", valid: () => Boolean(applicationPanel.querySelector("[data-application-attachment]:checked")) },
+  { selector: '[name="applicationGuarantor1"]', message: "กรุณาระบุชื่อและนามสกุลผู้ค้ำประกันคนที่ 1" },
+  { selector: '[name="applicationGuarantor2"]', message: "กรุณาระบุชื่อและนามสกุลผู้ค้ำประกันคนที่ 2" },
+];
+const requirementContainer = (requirement, element) => {
+  if (requirement.group === "purpose") return element.closest("fieldset");
+  if (requirement.group === "attachments") return element.closest(".application-card");
+  return element.closest(".guarantor-field") || element.closest("label");
+};
+const initializeApplicationRequirements = () => {
+  applicationRequirements.forEach((requirement) => {
+    const element = applicationPanel.querySelector(requirement.selector);
+    const container = element && requirementContainer(requirement, element);
+    if (container) container.classList.add("application-required");
+  });
+};
+const clearApplicationValidation = () => {
+  applicationPanel.querySelectorAll(".application-invalid").forEach((element) => element.classList.remove("application-invalid"));
+  applicationPanel.querySelectorAll('[aria-invalid="true"]').forEach((element) => element.removeAttribute("aria-invalid"));
+  applicationPanel.querySelectorAll(".application-error-message").forEach((element) => element.remove());
+};
+const validateApplication = () => {
+  clearApplicationValidation();
+  const invalid = [];
+  applicationRequirements.forEach((requirement) => {
+    const element = applicationPanel.querySelector(requirement.selector);
+    if (!element) return;
+    const valid = requirement.valid ? requirement.valid() : Boolean(element.value?.trim());
+    if (valid) return;
+    const container = requirementContainer(requirement, element);
+    container?.classList.add("application-invalid");
+    element.setAttribute("aria-invalid", "true");
+    const message = document.createElement("p");
+    message.className = "application-error-message";
+    message.setAttribute("role", "alert");
+    message.textContent = requirement.message;
+    container?.appendChild(message);
+    invalid.push({ element, message: requirement.message });
+  });
+  if (invalid.length) {
+    const first = invalid[0].element;
+    first.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => first.focus(), 300);
+  }
+  return invalid;
+};
+const purposeLabels = { education: "เพื่อการศึกษา อบรม หรือเสนอผลงานวิจัย", housing: "เพื่อปรับปรุงที่อยู่อาศัย", equipment: "เพื่อจัดหาเครื่องมือทางวิชาการ", emergency: "เพื่อฉุกเฉิน", retirement: "เพื่อสมนาคุณการเกษียณงานหรือลาออกจากงาน" };
+const getApplicationReviewData = () => {
+  const purpose = applicationPanel.querySelector('[name="applicationPurpose"]:checked')?.value || "";
+  const attachments = Array.from(applicationPanel.querySelectorAll("[data-application-attachment]:checked")).map((input) => input.closest("label")?.innerText.trim()).filter(Boolean);
+  return [
+    ["ชื่อผู้กู้", fullApplicationName('select[name="applicationPrefix"]', "#applicationBorrowerName")],
+    ["ตำแหน่ง", applicationFieldValue('[name="applicationPosition"]')], ["สังกัด", applicationFieldValue('[name="applicationDepartment"]')],
+    ["จำนวนเงินที่ขอกู้", `${formatLoanAmount(applicationFieldValue("#applicationAmount"))} บาท`], ["จำนวนเงินเป็นตัวอักษร", applicationFieldValue("#applicationAmountText")],
+    ["วัตถุประสงค์", purposeLabels[purpose] || "-"], ["ระยะเวลาผ่อน", `${applicationFieldValue("#applicationMonths")} เดือน`],
+    ["ค่างวดต่อเดือน", `${Number(applicationFieldValue("#applicationMonthlyPayment")).toLocaleString("th-TH")} บาท`], ["เอกสารแนบ", attachments.join(" • ")],
+    ["ผู้ค้ำประกันคนที่ 1", fullApplicationName('select[name="applicationGuarantor1Prefix"]', '[name="applicationGuarantor1"]')],
+    ["ผู้ค้ำประกันคนที่ 2", fullApplicationName('select[name="applicationGuarantor2Prefix"]', '[name="applicationGuarantor2"]')],
+    ["วันที่รับเงิน", [applicationFieldValue("#applicationReceiveDay"), thaiMonthNames[Number(applicationFieldValue("#applicationReceiveMonth")) - 1], applicationFieldValue("#applicationReceiveYear")].filter(Boolean).join(" ") || "ไม่ได้ระบุ"],
+    ["วันครบกำหนดงวดสุดท้าย", applicationFieldValue("#applicationFinalDueDate") || "ยังไม่คำนวณ"],
+  ];
+};
+const openApplicationReview = () => {
+  const invalidFields = validateApplication();
+  if (invalidFields.length) { alert(`กรุณาตรวจสอบข้อมูลที่จำเป็น ${invalidFields.length} รายการ โดยระบบเลื่อนไปยังช่องแรกที่ต้องแก้แล้ว`); return; }
+  const dialog = document.querySelector("#applicationReviewDialog");
+  const content = document.querySelector("#applicationReviewContent");
+  content.replaceChildren(...getApplicationReviewData().map(([label, value]) => { const item = document.createElement("div"); const title = document.createElement("span"); const detail = document.createElement("strong"); title.textContent = label; detail.textContent = value; item.append(title, detail); return item; }));
+  if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+};
+initializeApplicationRequirements();
+applicationPanel.addEventListener("input", (event) => {
+  const container = event.target.closest(".application-invalid");
+  if (container) { container.classList.remove("application-invalid"); container.querySelector(".application-error-message")?.remove(); event.target.removeAttribute("aria-invalid"); }
+});
+applicationPanel.addEventListener("change", (event) => {
+  const container = event.target.closest(".application-invalid");
+  if (container) { container.classList.remove("application-invalid"); container.querySelector(".application-error-message")?.remove(); event.target.removeAttribute("aria-invalid"); }
+});
 const setPdfText = (form, fieldName, value) => {
   try { form.getTextField(fieldName).setText(value == null ? "" : String(value)); } catch (error) { console.warn(`ไม่พบช่อง PDF: ${fieldName}`, error); }
 };
@@ -1043,17 +1220,22 @@ const setPdfAttachment = (form, fieldName, checked) => {
   const radio = form.getRadioGroup(fieldName);
   if (checked) radio.select("Yes"); else radio.clear();
 };
+const missingPdfFields = (form) => {
+  const available = new Set(form.getFields().map((field) => field.getName()));
+  return [...Object.values(PDF_FIELD_MAP), ...PDF_CONTROL_FIELDS].filter((name) => !available.has(name));
+};
 const exportApplicationPdf = async () => {
   const button = document.querySelector("#applicationPdfButton");
+  const invalidFields = validateApplication();
+  if (invalidFields.length) {
+    alert(`กรุณาตรวจสอบข้อมูลที่จำเป็น ${invalidFields.length} รายการ โดยระบบเลื่อนไปยังช่องแรกที่ต้องแก้แล้ว`);
+    return;
+  }
   const purpose = applicationPanel.querySelector('input[name="applicationPurpose"]:checked')?.value;
   const borrower = fullApplicationName('select[name="applicationPrefix"]', "#applicationBorrowerName");
   const amount = applicationFieldValue("#applicationAmount");
   const months = applicationFieldValue("#applicationMonths");
   const monthlyPayment = applicationFieldValue("#applicationMonthlyPayment");
-  if (!borrower || !amount || !months || !monthlyPayment || !purpose) {
-    alert("กรุณากรอกชื่อผู้กู้ จำนวนเงิน จำนวนงวด ค่างวดรายเดือน และวัตถุประสงค์ก่อนส่งออก PDF");
-    return;
-  }
   if (!window.PDFLib || !window.PDF_TEMPLATE_BASE64) {
     alert("ไม่สามารถเปิดแม่แบบ PDF ได้ กรุณาลองใหม่อีกครั้ง");
     return;
@@ -1065,25 +1247,26 @@ const exportApplicationPdf = async () => {
     const bytes = Uint8Array.from(atob(window.PDF_TEMPLATE_BASE64), (character) => character.charCodeAt(0));
     const pdfDocument = await window.PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
     const form = pdfDocument.getForm();
-    setPdfText(form, "เขียนที่", applicationFieldValue('input[name="applicationWrittenAt"]'));
-    setPdfText(form, "วันที่", applicationFieldValue('input[name="applicationDate"]'));
-    setPdfText(form, "ผู้กู้", borrower);
-    setPdfText(form, "ตําแหน่ง", applicationFieldValue('[name="applicationPosition"]'));
-    setPdfText(form, "สังกัด", applicationFieldValue('select[name="applicationDepartment"]'));
-    setPdfText(form, "จำนวนเงินที่ขอกู้", amount);
-    setPdfText(form, "จำนวนเงินเป็นตัวอักษร", applicationFieldValue("#applicationAmountText") || thaiAmountText(amount));
-    setPdfText(form, "ระยะเวลาผ่อน (เดือน)", months);
-    setPdfText(form, "ยอดผ่อนรายเดือน", monthlyPayment);
-    setPdfText(form, "วันที่รับเงิน", applicationFieldValue("#applicationReceiveDay"));
-    setPdfText(form, "เดือนที่รับเงิน", thaiMonthNames[Number(applicationFieldValue("#applicationReceiveMonth")) - 1] || "");
+    const missingFields = missingPdfFields(form);
+    if (missingFields.length) throw new Error(`แม่แบบ PDF ขาดช่อง: ${missingFields.join(", ")}`);
+    setPdfText(form, PDF_FIELD_MAP.writtenAt, applicationFieldValue('input[name="applicationWrittenAt"]'));
+    setPdfText(form, PDF_FIELD_MAP.applicationDate, applicationFieldValue('input[name="applicationDate"]'));
+    setPdfText(form, PDF_FIELD_MAP.borrower, borrower);
+    setPdfText(form, PDF_FIELD_MAP.position, applicationFieldValue('[name="applicationPosition"]'));
+    setPdfText(form, PDF_FIELD_MAP.department, applicationFieldValue('select[name="applicationDepartment"]'));
+    setPdfText(form, PDF_FIELD_MAP.amount, amount);
+    setPdfText(form, PDF_FIELD_MAP.amountText, applicationFieldValue("#applicationAmountText") || thaiAmountText(amount));
+    setPdfText(form, PDF_FIELD_MAP.months, months);
+    setPdfText(form, PDF_FIELD_MAP.monthlyPayment, formatLoanAmount(monthlyPayment));
+    setPdfText(form, PDF_FIELD_MAP.receiveDay, applicationFieldValue("#applicationReceiveDay"));
+    setPdfText(form, PDF_FIELD_MAP.receiveMonth, thaiMonthNames[Number(applicationFieldValue("#applicationReceiveMonth")) - 1] || "");
     const finalDueDate = getFinalDueDate();
-    setPdfText(form, "เดือนที่ชําระเงินกู้งวดสุดท้าย", finalDueDate ? thaiMonthNames[finalDueDate.month - 1] : "");
+    setPdfText(form, PDF_FIELD_MAP.finalMonth, finalDueDate ? thaiMonthNames[finalDueDate.month - 1] : "");
     const receiveYear = applicationFieldValue("#applicationReceiveYear");
-    setPdfText(form, "ปี พ.ศ. ที่รับเงิน", receiveYear);
-    setPdfText(form, "ปี พ.ศ. ที่ชําระเงินกู้งวดสุดท้าย", finalDueDate?.year || "");
-    setPdfText(form, "ผู้ค้ำ ที่1", fullApplicationName('select[name="applicationGuarantor1Prefix"]', 'input[name="applicationGuarantor1"]'));
-    setPdfText(form, "ผู้ค้ำ ที่2", fullApplicationName('select[name="applicationGuarantor2Prefix"]', 'input[name="applicationGuarantor2"]'));
-    setPdfText(form, "ข้าพเจ้า", borrower);
+    setPdfText(form, PDF_FIELD_MAP.receiveYear, receiveYear);
+    setPdfText(form, PDF_FIELD_MAP.finalYear, finalDueDate?.year || "");
+    setPdfText(form, PDF_FIELD_MAP.guarantor1, fullApplicationName('select[name="applicationGuarantor1Prefix"]', 'input[name="applicationGuarantor1"]'));
+    setPdfText(form, PDF_FIELD_MAP.guarantor2, fullApplicationName('select[name="applicationGuarantor2Prefix"]', 'input[name="applicationGuarantor2"]'));
     form.getRadioGroup("loan_purpose").select(purpose);
     applicationPanel.querySelectorAll("[data-application-attachment]").forEach((input) => {
       setPdfAttachment(form, `attachment_${input.dataset.applicationAttachment.replace('.', '_')}`, input.checked);
@@ -1104,7 +1287,10 @@ const exportApplicationPdf = async () => {
     button.textContent = originalLabel;
   }
 };
-document.querySelector("#applicationPdfButton")?.addEventListener("click", exportApplicationPdf);
+document.querySelector("#applicationPdfButton")?.addEventListener("click", openApplicationReview);
+document.querySelector("#applicationReviewClose")?.addEventListener("click", () => document.querySelector("#applicationReviewDialog")?.close());
+document.querySelector("#applicationReviewBack")?.addEventListener("click", () => document.querySelector("#applicationReviewDialog")?.close());
+document.querySelector("#applicationReviewConfirm")?.addEventListener("click", () => { document.querySelector("#applicationReviewDialog")?.close(); exportApplicationPdf(); });
 
 const fontSizeToggle = document.querySelector("#fontSizeToggle");
 const fontSizeLabel = document.querySelector("#fontSizeLabel");
@@ -1117,4 +1303,3 @@ const applyFontSize = (mode) => {
 };
 try { applyFontSize(localStorage.getItem("bdt-loan-font-size") || "normal"); } catch (error) { applyFontSize("normal"); }
 fontSizeToggle?.addEventListener("click", () => applyFontSize(document.documentElement.classList.contains("large-text") ? "normal" : "large"));
-
